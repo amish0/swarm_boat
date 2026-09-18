@@ -1,0 +1,6 @@
+#ifndef FIRMWARE_VERSION_H
+#define FIRMWARE_VERSION_H
+
+#define FIRMWARE_VERSION "1.0.0"
+
+#endif
