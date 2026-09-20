@@ -8,6 +8,7 @@
 #include "ota.h"
 #include "ledcontroller.h"
 #include "servoController.h"
+#include "sensorData.h"
 #include "version.h"
 
 class main
@@ -15,16 +16,21 @@ class main
 private:
     LedController ledController;
     ServoController servoController;
+    SensorDataCollector sensorDataCollector;
     const char* ssid = "Airtel_amish_4535";
     const char* password = "Amish@123";
     const char* mqtt_server = "24b5f8e1ba974706b07f689402ddb9ef.s1.eu.hivemq.cloud";
     const int mqtt_port = 8883;
     const char* mqtt_user = "ai_boat";
     const char* mqtt_password = "Test@123";
+
     WiFiClientSecure espClient;
     PubSubClient client{espClient};
     uint32_t change_robot_time = 0;
     unsigned long lastMsg = 0;
+    long distance_c = 0;
+    long distance_l = 0;
+    long distance_r = 0;
 public:
     RobotState state = RobotState::STOP;
     ServoState servoState = ServoState::CENTER;
@@ -33,7 +39,7 @@ public:
     void begin();
     void loop();
     void reconnectMQTT();
-    void publishMQTT(MotorState motorState, bool signalBlink, float temperature, float humidity, float distance);
+    void publishMQTT(MotorState motorState, ServoState servoState, bool signalBlink, float temperature, float humidity, float distance);
 };
 
 #endif

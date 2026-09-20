@@ -14,19 +14,25 @@ ServoController::~ServoController()
 
 void ServoController::center()
 {
-    setServoAngle(90);
+    setServoAngle(45);
     state = ServoState::CENTER;
+    Serial.println("Center--");
+    Serial.println("45");
 }
 
 void ServoController::left()
 {
-    setServoAngle(120);
+    setServoAngle(15);
     state = ServoState::LEFT;
+    Serial.println("Left--");
+    Serial.println("15");
 }
 
 void ServoController::right()
 {
-     setServoAngle(30);
+     setServoAngle(70);
+     Serial.println("Right--");
+     Serial.println("75");
      state = ServoState::RIGHT;
 }
 
