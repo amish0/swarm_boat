@@ -9,6 +9,7 @@
 #include "ledcontroller.h"
 #include "servoController.h"
 #include "sensorData.h"
+#include "displayController.h"
 #include "version.h"
 
 class main
@@ -17,6 +18,7 @@ private:
     LedController ledController;
     ServoController servoController;
     SensorDataCollector sensorDataCollector;
+    DisplayController displayController;
     const char* ssid = "Airtel_amish_4535";
     const char* password = "Amish@123";
     const char* mqtt_server = "24b5f8e1ba974706b07f689402ddb9ef.s1.eu.hivemq.cloud";

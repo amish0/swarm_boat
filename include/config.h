@@ -22,7 +22,14 @@ constexpr uint8_t IN_BUILT_LED = 2;
 // --- LED setup ---
 #define RED_LED_PIN 15 // STOP
 #define GREEN_LED_PIN  4   // steady ON for forward
-#define BLINK_GREEN_LED_PIN 21 // blinking heartbeat
+#define BLINK_GREEN_LED_PIN 19 // blinking heartbeat
 #define BLUE_LED_PIN 23 // backard
+
+// --- OLED display setup (I2C SSD1306, 128x64) ---
+#define OLED_SDA_PIN 21
+#define OLED_SCL_PIN 22
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
+#define OLED_I2C_ADDRESS 0x3C
 
 #endif

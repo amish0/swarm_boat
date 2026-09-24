@@ -1,5 +1,4 @@
 #include "../include/main.h"
-#include "../include/constants.h"
 
 main::main() {}
 main::~main() {}
@@ -18,21 +17,14 @@ void main::begin()
   espClient.setInsecure();
   client.setServer(mqtt_server, mqtt_port);
   ledController.initialize();
+  servoController.begin();
   sensorDataCollector.begin();
+  displayController.begin();
 }
 
 void main::loop()
 {
   otaHandle();
-//   if (millis() - change_robot_time > 5000)
-//   {
-//     state = static_cast<RobotState>(random(0, 3));
-//     ledController.updateRobotState(state);
-//     change_robot_time = millis();
-//     Serial.println("Robot State-->");
-//     Serial.println(static_cast<int>(state));
-//   }
-
   if (!otaInProgress && millis() - lastBlinkTime > 1000) {
     ledState = ledState == LOW ? HIGH : LOW;
     digitalWrite(otaLedPin, ledState);
@@ -41,20 +33,6 @@ void main::loop()
     lastBlinkTime = millis();
     ledController.blinkLed(BLINK_GREEN_LED_PIN);
   }
-//   if (servoState == ServoState::CENTER)
-//   {
-//     servoState = ServoState::LEFT;
-//     servoController.left();
-//   } else if (servoState == ServoState::LEFT)
-//   {
-//     servoState = ServoState::RIGHT;
-//     servoController.right();
-//   } else 
-//   {
-//     servoState = ServoState::CENTER;
-//     servoController.center();
-//   }
-  
   distance_c = sensorDataCollector.getObjectDistance();
   Serial.println("distance-->");
   Serial.println(distance_c);
@@ -92,15 +70,14 @@ void main::loop()
     Serial.println("Robot State-->");
     Serial.println(static_cast<int>(state));
   }
+  displayController.update(state, distance_c, 28.5, 65.2);
   publishMQTT(
     static_cast<MotorState>(state),
     static_cast<ServoState>(servoState),
     ledState == HIGH,
     28.5,
     65.2,
-    20.4);
-//   delay(1000);
-  
+    distance_c);
 }
 
 
@@ -143,7 +120,7 @@ void main::publishMQTT(MotorState motorState, ServoState servoState , bool signa
 
     String payload =
       "{\"motorState\":" + String(static_cast<int>(motorState)) +
-      "\"Servo Position\":" + String(static_cast<int>(servoState)) +
+      ",\"servoPosition\":" + String(static_cast<int>(servoState)) +
       ",\"signalBlink\":" + String(signalBlink ? "true" : "false") +
       ",\"temperature\":" + String(temperature,1) +
       ",\"humidity\":" + String(humidity,1) +

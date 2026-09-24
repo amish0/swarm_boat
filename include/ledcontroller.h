@@ -2,7 +2,6 @@
 #define LED_CONTROLLER_H
 
 #include <Arduino.h>
-#include <vector>
 #include "config.h"
 #include "constants.h"
 

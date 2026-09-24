@@ -3,12 +3,16 @@
 ServoController::ServoController()
 {
     state = ServoState::CENTER;
-    servoMotor.attach(SERVO_PIN);
-    center();
 }
 
 ServoController::~ServoController() 
 {
+    servoMotor.detach();
+}
+
+void ServoController::begin()
+{
+    servoMotor.attach(SERVO_PIN);
     center();
 }
 

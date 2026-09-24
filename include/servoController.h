@@ -1,7 +1,7 @@
 #ifndef SERVO_CONTROLLER_H
 #define SERVO_CONTROLLER_H
-#include <Arduino.h>
 #include <ESP32Servo.h>
+#include <Arduino.h>
 #include "config.h"
 #include "constants.h"
 
@@ -15,6 +15,7 @@ private:
 public:
     ServoController();
     ~ServoController();
+    void begin();
     void left();
     void right();
     void center();
