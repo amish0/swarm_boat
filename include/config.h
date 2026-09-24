@@ -19,6 +19,10 @@ constexpr uint8_t IN_BUILT_LED = 2;
 #define TRIG_PIN 5
 #define ECHO_PIN 18
 
+// --- Temperature and humidity sensor setup (DHT22) ---
+#define DHT_DATA_PIN 33
+#define DHT_SENSOR_TYPE DHT11
+
 // --- LED setup ---
 #define RED_LED_PIN 15 // STOP
 #define GREEN_LED_PIN  4   // steady ON for forward

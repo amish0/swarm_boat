@@ -70,13 +70,15 @@ void main::loop()
     Serial.println("Robot State-->");
     Serial.println(static_cast<int>(state));
   }
-  displayController.update(state, distance_c, 28.5, 65.2);
+  float temperature = sensorDataCollector.getTemperature();
+  float humidity = sensorDataCollector.getHumidity();
+  displayController.update(state, distance_c, temperature, humidity);
   publishMQTT(
     static_cast<MotorState>(state),
     static_cast<ServoState>(servoState),
     ledState == HIGH,
-    28.5,
-    65.2,
+    temperature,
+    humidity,
     distance_c);
 }
 
