@@ -41,6 +41,7 @@ flowchart LR
 | L298N IN2 | 26 | Left motor direction input 2 |
 | L298N IN3 | 27 | Right motor direction input 1 |
 | L298N IN4 | 32 | Right motor direction input 2 |
+| Buzzer driver control | 14 | Drives NPN transistor base through a 1 kOhm resistor |
 | Ultrasonic TRIG | 5 | Trigger input |
 | Ultrasonic ECHO | 18 | Echo output, through a 5 V-to-3.3 V level divider when required |
 | Servo signal | 13 | Sensor scanning servo |
@@ -67,6 +68,27 @@ flowchart LR
 ```
 
 The firmware assumes the L298N `ENA` and `ENB` jumpers are installed, so both channels run at full speed. Use a suitable motor supply and servo supply; connect their grounds to ESP32 ground. Do not power motors from the ESP32 3.3 V pin. Confirm the ultrasonic ECHO voltage is safe for the ESP32 before connecting it.
+
+### Two-Pin Buzzer Wiring
+
+Use an NPN transistor (for example, 2N2222 or BC337) as a low-side switch. Do not drive a buzzer directly from an ESP32 GPIO.
+
+```mermaid
+flowchart LR
+  GPIO[ESP32 GPIO 14] --> R[1 kOhm resistor]
+  R --> B[ NPN base ]
+  E[NPN emitter] --> GND[Common ground]
+  C[NPN collector] --> BUZZMIN[Buzzer minus]
+  SUPPLY[Rated buzzer supply] --> BUZZPLUS[Buzzer plus]
+  BUZZPLUS --> BUZZER[Two-pin active buzzer]
+  BUZZER --> BUZZMIN
+  GND --- ESPGND[ESP32 GND]
+  GND --- SUPPLYGND[Buzzer supply ground]
+```
+
+Connect the buzzer's `+` pin to its rated supply, its `-` pin to the transistor collector, the emitter to ground, and GPIO 14 to the base through the resistor. Join the buzzer supply ground and ESP32 ground. Verify the buzzer voltage and current from its datasheet. For a magnetic/inductive buzzer, add a flyback diode across the buzzer (cathode to `+`).
+
+The current firmware toggles GPIO 14 on and off and is intended for an **active buzzer**, which generates its own audio tone. A passive piezo needs a frequency-driven tone signal; this on/off pattern will not produce the intended continuous beep on a passive part.
 
 ## Obstacle Logic
 
@@ -140,6 +162,7 @@ stateDiagram-v2
 - The servo starts centered, then scans left and right only after a close front obstacle is detected.
 - The OLED shows movement state, filtered front distance, temperature, and humidity.
 - Red indicates stop, green indicates forward or turning, and blue indicates reverse. The heartbeat LED blinks once per second.
+- The buzzer gives short repeating beeps during side scans and backward/turning movement; it is silent while stopped or moving forward.
 - Wi-Fi and password-protected ArduinoOTA are enabled. OTA handling runs in the main loop.
 - The MQTT publish call is currently commented out; the firmware does not send sensor telemetry.
 - Wi-Fi credentials are currently held in the firmware source. Move them to a private local configuration before sharing the project.

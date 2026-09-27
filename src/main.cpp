@@ -34,6 +34,9 @@ void main::begin()
   digitalWrite(L298N_IN2_PIN, LOW);
   digitalWrite(L298N_IN3_PIN, LOW);
   digitalWrite(L298N_IN4_PIN, LOW);
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
+  lastBuzzerToggleAt = millis();
 
   ledController.initialize();
   servoController.begin();
@@ -193,6 +196,8 @@ void main::loop()
       break;
   }
 
+  updateBuzzer(millis());
+
   float temperature = sensorDataCollector.getTemperature();
   float humidity = sensorDataCollector.getHumidity();
   if (now - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL_MS) {
@@ -208,6 +213,33 @@ void main::loop()
   //   distance_c);
 }
 
+void main::updateBuzzer(uint32_t now)
+{
+  bool scanning = obstacleScanPhase == ObstacleScanPhase::WAIT_LEFT ||
+    obstacleScanPhase == ObstacleScanPhase::SAMPLE_LEFT ||
+    obstacleScanPhase == ObstacleScanPhase::WAIT_RIGHT ||
+    obstacleScanPhase == ObstacleScanPhase::SAMPLE_RIGHT;
+  bool movingForAvoidance = state == RobotState::BACKWARD ||
+    state == RobotState::LEFT ||
+    state == RobotState::RIGHT;
+
+  if (!scanning && !movingForAvoidance) {
+    digitalWrite(BUZZER_PIN, LOW);
+    buzzerIsOn = false;
+    lastBuzzerToggleAt = now;
+    return;
+  }
+
+  uint32_t interval = buzzerIsOn
+    ? BUZZER_BEEP_ON_MS
+    : BUZZER_BEEP_OFF_MS;
+  if (now - lastBuzzerToggleAt >= interval) {
+    buzzerIsOn = !buzzerIsOn;
+    digitalWrite(BUZZER_PIN, buzzerIsOn ? HIGH : LOW);
+    lastBuzzerToggleAt = now;
+  }
+}
+
 void main::setMovement(RobotState movement)
 {
   if (state == movement) {
@@ -219,26 +251,26 @@ void main::setMovement(RobotState movement)
     case RobotState::FORWARD:
       digitalWrite(L298N_IN1_PIN, HIGH);
       digitalWrite(L298N_IN2_PIN, LOW);
-      digitalWrite(L298N_IN3_PIN, HIGH);
-      digitalWrite(L298N_IN4_PIN, LOW);
+      digitalWrite(L298N_IN3_PIN, LOW);
+      digitalWrite(L298N_IN4_PIN, HIGH);
       break;
     case RobotState::BACKWARD:
       digitalWrite(L298N_IN1_PIN, LOW);
       digitalWrite(L298N_IN2_PIN, HIGH);
-      digitalWrite(L298N_IN3_PIN, LOW);
-      digitalWrite(L298N_IN4_PIN, HIGH);
+      digitalWrite(L298N_IN3_PIN, HIGH);
+      digitalWrite(L298N_IN4_PIN, LOW);
       break;
     case RobotState::LEFT:
       digitalWrite(L298N_IN1_PIN, LOW);
       digitalWrite(L298N_IN2_PIN, HIGH);
-      digitalWrite(L298N_IN3_PIN, HIGH);
-      digitalWrite(L298N_IN4_PIN, LOW);
+      digitalWrite(L298N_IN3_PIN, LOW);
+      digitalWrite(L298N_IN4_PIN, HIGH);
       break;
     case RobotState::RIGHT:
       digitalWrite(L298N_IN1_PIN, HIGH);
       digitalWrite(L298N_IN2_PIN, LOW);
-      digitalWrite(L298N_IN3_PIN, LOW);
-      digitalWrite(L298N_IN4_PIN, HIGH);
+      digitalWrite(L298N_IN3_PIN, HIGH);
+      digitalWrite(L298N_IN4_PIN, LOW);
       break;
     case RobotState::STOP:
       digitalWrite(L298N_IN1_PIN, LOW);

@@ -54,9 +54,12 @@ private:
     uint8_t frontSampleCount = 0;
     uint8_t frontNoEchoCount = 0;
     uint8_t frontClearReadings = 0;
+    bool buzzerIsOn = false;
+    uint32_t lastBuzzerToggleAt = 0;
     uint32_t lastDisplayUpdate = 0;
 
     void setMovement(RobotState movement);
+    void updateBuzzer(uint32_t now);
 public:
     RobotState state = RobotState::STOP;
     ServoState servoState = ServoState::CENTER;
