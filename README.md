@@ -41,7 +41,7 @@ flowchart LR
 | L298N IN2 | 26 | Left motor direction input 2 |
 | L298N IN3 | 27 | Right motor direction input 1 |
 | L298N IN4 | 32 | Right motor direction input 2 |
-| Buzzer driver control | 14 | Drives NPN transistor base through a 1 kOhm resistor |
+| Buzzer driver control | 14 | Drives BC547 base through a 1 kOhm resistor |
 | Ultrasonic TRIG | 5 | Trigger input |
 | Ultrasonic ECHO | 18 | Echo output, through a 5 V-to-3.3 V level divider when required |
 | Servo signal | 13 | Sensor scanning servo |
@@ -69,16 +69,69 @@ flowchart LR
 
 The firmware assumes the L298N `ENA` and `ENB` jumpers are installed, so both channels run at full speed. Use a suitable motor supply and servo supply; connect their grounds to ESP32 ground. Do not power motors from the ESP32 3.3 V pin. Confirm the ultrasonic ECHO voltage is safe for the ESP32 before connecting it.
 
+## Power and Full Wiring Schematic
+
+**Do not connect the series pair of 3.7 V cells to a TP4056.** The two series cells form a 2S lithium-ion pack (7.4 V nominal, 8.4 V fully charged), while a TP4056 is for one cell (1S). For this series pack, use a 2S BMS with balancing and a compatible 8.4 V CC/CV 2S charger. The BMS is not itself a charger.
+
+```mermaid
+flowchart TB
+  C1["Li-ion cell 1<br/>3.7 V nominal"] --> SERIES["Two cells in series<br/>2S: 7.4 V nominal, 8.4 V full"]
+  C2["Li-ion cell 2<br/>3.7 V nominal"] --> SERIES
+  SERIES --> BMS["2S BMS with balancing"]
+  CHARGER["8.4 V CC/CV 2S charger"] -->|BMS charge terminals per board labels| BMS
+  TP["TP4056 1S charger<br/>DO NOT connect to 2S pack"] -. incompatible .-> SERIES
+  BMS -->|Protected pack output| PACK["Protected battery rail<br/>P+ / P-"]
+
+  PACK -->|Set to motor rated voltage| MOTORREG["Motor supply regulator<br/>only if required by motor rating"]
+  MOTORREG --> L298N["L298N motor supply VS"]
+  L298N -->|OUT1 / OUT2| LEFT["Left DC motor"]
+  L298N -->|OUT3 / OUT4| RIGHT["Right DC motor"]
+
+  PACK --> BUCK["5 V buck converter<br/>size for ESP32 + servo current"]
+  BUCK --> VIN["ESP32 DevKit 5V / VIN<br/>bare WROOM needs 3.3 V regulator"]
+  BUCK --> SERVO5["Servo +5 V"]
+  BUCK --> BUZZ5["5 V buzzer +"]
+  VIN --> ESP[ESP32]
+  ESP -->|GPIO 25, 26, 27, 32| L298N
+  ESP -->|GPIO 13 signal| SERVO[Servo]
+  SERVO5 --> SERVO
+  ESP -->|GPIO 14 through 1 kOhm| BASE["BC547 base"]
+  BASE --> BUZZER["BC547 switches buzzer negative"]
+  BUZZ5 --> BUZZER
+
+  ESP -->|GPIO 5 TRIG| US["Ultrasonic sensor"]
+  US -->|ECHO through divider if 5 V| ESP
+  ESP -->|GPIO 33| DHT[DHT11]
+  ESP -->|GPIO 21 SDA / GPIO 22 SCL| OLED[SSD1306 OLED]
+  ESP -->|GPIO 15 / 4 / 23 / 19| LEDS["4 LEDs, each with its own series resistor"]
+
+  GND[Common ground] --- BMS
+  GND --- BUCK
+  GND --- L298N
+  GND --- ESP
+  GND --- SERVO
+  GND --- US
+  GND --- DHT
+  GND --- OLED
+  GND --- BUZZER
+```
+
+The listed `3.7 V charging module` is not identified beyond its voltage. If it is a TP4056, leave it disconnected from this 2S series pack. Do not charge the pack until the charger and BMS are confirmed as 2S-compatible. Check the motors' rated voltage before feeding the pack to L298N `VS`; the pack reaches 8.4 V when full. Many L298N boards also have a `5V-EN` regulator jumper: follow that module's markings and avoid connecting two 5 V regulator outputs together.
+
+The diagram assumes an ESP32 DevKit board. A bare ESP32-WROOM module cannot take 5 V on its supply pin and requires a regulated 3.3 V supply. The servo should use a regulated 5 V supply capable of its peak current, with grounds shared; do not power it from the ESP32 3.3 V output.
+
+For the four LEDs, connect GPIO 15 (red), GPIO 4 (green), GPIO 23 (blue), and GPIO 19 (heartbeat) through four separate 220-330 Ohm resistors to LED anodes; connect each cathode to ground. For a bare DHT11, add a 4.7-10 kOhm pull-up from data to 3.3 V; many DHT11 modules already include it.
+
 ### Two-Pin Buzzer Wiring
 
-Use an NPN transistor (for example, 2N2222 or BC337) as a low-side switch. Do not drive a buzzer directly from an ESP32 GPIO.
+Use the BC547 NPN transistor as a low-side switch. Do not drive a buzzer directly from an ESP32 GPIO.
 
 ```mermaid
 flowchart LR
   GPIO[ESP32 GPIO 14] --> R[1 kOhm resistor]
-  R --> B[ NPN base ]
-  E[NPN emitter] --> GND[Common ground]
-  C[NPN collector] --> BUZZMIN[Buzzer minus]
+  R --> B[BC547 base]
+  E[BC547 emitter] --> GND[Common ground]
+  C[BC547 collector] --> BUZZMIN[Buzzer minus]
   SUPPLY[Rated buzzer supply] --> BUZZPLUS[Buzzer plus]
   BUZZPLUS --> BUZZER[Two-pin active buzzer]
   BUZZER --> BUZZMIN
