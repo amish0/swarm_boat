@@ -32,8 +32,6 @@ long SensorDataCollector::getObjectDistance()
     delayMicroseconds(10);
     digitalWrite(triggerPin, LOW);
     duration = pulseIn(echoPin, HIGH, 30000UL);
-    Serial.println("duration-->");
-    Serial.println(duration);
     distance = duration * 0.034 / 2; // cm
     return distance;
 }

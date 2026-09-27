@@ -24,55 +24,54 @@ void main::begin()
 
 void main::loop()
 {
+  constexpr uint32_t SERVO_SETTLE_TIME_MS = 300;
+  constexpr uint32_t DISPLAY_UPDATE_INTERVAL_MS = 1000;
+
   otaHandle();
   if (!otaInProgress && millis() - lastBlinkTime > 1000) {
     ledState = ledState == LOW ? HIGH : LOW;
     digitalWrite(otaLedPin, ledState);
-    Serial.println(otaInProgress);
-    Serial.println(ledState);
     lastBlinkTime = millis();
     ledController.blinkLed(BLINK_GREEN_LED_PIN);
   }
   distance_c = sensorDataCollector.getObjectDistance();
-  Serial.println("distance-->");
-  Serial.println(distance_c);
-  if (distance_c < 10 )
-  {
-    state = RobotState::STOP;
-    ledController.updateRobotState(state);
-    change_robot_time = millis();
-    Serial.println("Robot State-->");
-    Serial.println(static_cast<int>(state));
-    servoState = ServoState::LEFT;
-    servoController.left();
-    delay(1000);
+  uint32_t now = millis();
+
+  if (obstacleScanPhase == ObstacleScanPhase::IDLE) {
+    if (distance_c < 10) {
+      state = RobotState::STOP;
+      servoState = ServoState::LEFT;
+      servoController.left();
+      obstacleScanPhase = ObstacleScanPhase::WAIT_LEFT;
+      scanPhaseStartedAt = now;
+    } else {
+      state = RobotState::FORWARD;
+    }
+  } else if (obstacleScanPhase == ObstacleScanPhase::WAIT_LEFT &&
+             now - scanPhaseStartedAt >= SERVO_SETTLE_TIME_MS) {
     distance_l = sensorDataCollector.getObjectDistance();
     servoState = ServoState::RIGHT;
     servoController.right();
-    delay(1000);
+    obstacleScanPhase = ObstacleScanPhase::WAIT_RIGHT;
+    scanPhaseStartedAt = now;
+  } else if (obstacleScanPhase == ObstacleScanPhase::WAIT_RIGHT &&
+             now - scanPhaseStartedAt >= SERVO_SETTLE_TIME_MS) {
     distance_r = sensorDataCollector.getObjectDistance();
     servoState = ServoState::CENTER;
     servoController.center();
-
-    if (distance_l < 12 && distance_r < 12 )
-    {
-      state = RobotState::BACKWARD;
-      ledController.updateRobotState(state);
-      change_robot_time = millis();
-      Serial.println("Robot State-->");
-      Serial.println(static_cast<int>(state));
-    }
-  } else
-  {
-    state = RobotState::FORWARD;
-    ledController.updateRobotState(state);
-    change_robot_time = millis();
-    Serial.println("Robot State-->");
-    Serial.println(static_cast<int>(state));
+    state = distance_l < 12 && distance_r < 12
+      ? RobotState::BACKWARD
+      : RobotState::STOP;
+    obstacleScanPhase = ObstacleScanPhase::IDLE;
   }
+
+  ledController.updateRobotState(state);
   float temperature = sensorDataCollector.getTemperature();
   float humidity = sensorDataCollector.getHumidity();
-  displayController.update(state, distance_c, temperature, humidity);
+  if (now - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL_MS) {
+    displayController.update(state, distance_c, temperature, humidity);
+    lastDisplayUpdate = now;
+  }
   publishMQTT(
     static_cast<MotorState>(state),
     static_cast<ServoState>(servoState),
@@ -85,25 +84,27 @@ void main::loop()
 
 void main::reconnectMQTT()
 {
-  while (!client.connected()) {
+  uint32_t now = millis();
+  if (now - lastReconnectAttempt < 5000) {
+    return;
+  }
+  lastReconnectAttempt = now;
 
-    String clientId = "ESP32-" + String(random(0xffff), HEX);
+  String clientId = "ESP32-" + String(random(0xffff), HEX);
 
-    Serial.print("Connecting MQTT...");
+  Serial.print("Connecting MQTT...");
 
-    if (client.connect(
-          clientId.c_str(),
-          mqtt_user,
-          mqtt_password))
-    {
-      Serial.println("Connected");
-    }
-    else
-    {
-      Serial.print("Failed, rc=");
-      Serial.println(client.state());
-      delay(5000);
-    }
+  if (client.connect(
+        clientId.c_str(),
+        mqtt_user,
+        mqtt_password))
+  {
+    Serial.println("Connected");
+  }
+  else
+  {
+    Serial.print("Failed, rc=");
+    Serial.println(client.state());
   }
 }
 
@@ -111,6 +112,10 @@ void main::publishMQTT(MotorState motorState, ServoState servoState , bool signa
 {
   if (!client.connected()) {
     reconnectMQTT();
+  }
+
+  if (!client.connected()) {
+    return;
   }
 
   client.loop();

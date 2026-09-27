@@ -15,6 +15,13 @@
 class main
 {
 private:
+    enum class ObstacleScanPhase
+    {
+        IDLE,
+        WAIT_LEFT,
+        WAIT_RIGHT
+    };
+
     LedController ledController;
     ServoController servoController;
     SensorDataCollector sensorDataCollector;
@@ -30,9 +37,13 @@ private:
     PubSubClient client{espClient};
     uint32_t change_robot_time = 0;
     unsigned long lastMsg = 0;
+    uint32_t lastReconnectAttempt = 0;
     long distance_c = 0;
     long distance_l = 0;
     long distance_r = 0;
+    ObstacleScanPhase obstacleScanPhase = ObstacleScanPhase::IDLE;
+    uint32_t scanPhaseStartedAt = 0;
+    uint32_t lastDisplayUpdate = 0;
 public:
     RobotState state = RobotState::STOP;
     ServoState servoState = ServoState::CENTER;
