@@ -42,19 +42,30 @@ void DisplayController::update(RobotState state, long distance, float temperatur
         case RobotState::BACKWARD:
             display.println("BACKWARD");
             break;
+        case RobotState::LEFT:
+            display.println("LEFT");
+            break;
+        case RobotState::RIGHT:
+            display.println("RIGHT");
+            break;
         default:
             display.println("STOP");
             break;
     }
 
-    if (distance < 10) {
+    if (distance == ULTRASONIC_NO_ECHO) {
+        display.println("Object: CLEAR");
+        display.println("Distance: NO ECHO");
+    } else if (distance < FRONT_OBSTACLE_DISTANCE_CM) {
         display.println("Object: DETECTED");
         display.print("Distance: ");
         display.print(distance);
         display.println(" cm");
     } else {
         display.println("Object: CLEAR");
-        display.println("Distance: --");
+        display.print("Distance: ");
+        display.print(distance);
+        display.println(" cm");
     }
 
     display.print("Temp: ");

@@ -5,7 +5,9 @@ enum class MotorState
 {
     STOP,
     FORWARD,
-    BACKWARD
+    BACKWARD,
+    LEFT,
+    RIGHT
 };
 
 enum class ServoState
@@ -19,7 +21,9 @@ enum class RobotState
 {
     STOP,
     FORWARD,
-    BACKWARD
+    BACKWARD,
+    LEFT,
+    RIGHT
 };
 
 #endif

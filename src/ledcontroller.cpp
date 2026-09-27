@@ -47,11 +47,18 @@ void LedController::actionLed()
         Serial.print("STOP");
         break;
     case RobotState::FORWARD:
+    case RobotState::LEFT:
+    case RobotState::RIGHT:
         turnLedOff(BLUE_LED_PIN);
         turnLedOn(GREEN_LED_PIN);
         turnLedOff(RED_LED_PIN);
-        // blinkLed(BLINK_GREEN_LED_PIN);
-        Serial.print("FORWARD");
+        if (state == RobotState::LEFT) {
+            Serial.print("LEFT");
+        } else if (state == RobotState::RIGHT) {
+            Serial.print("RIGHT");
+        } else {
+            Serial.print("FORWARD");
+        }
         break;
     case RobotState::BACKWARD:
         turnLedOn(BLUE_LED_PIN);

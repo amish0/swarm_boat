@@ -19,7 +19,11 @@ private:
     {
         IDLE,
         WAIT_LEFT,
-        WAIT_RIGHT
+        SAMPLE_LEFT,
+        WAIT_RIGHT,
+        SAMPLE_RIGHT,
+        TURNING,
+        REVERSING
     };
 
     LedController ledController;
@@ -43,7 +47,16 @@ private:
     long distance_r = 0;
     ObstacleScanPhase obstacleScanPhase = ObstacleScanPhase::IDLE;
     uint32_t scanPhaseStartedAt = 0;
+    uint32_t lastDistanceSampleAt = 0;
+    long sideDistanceTotal = 0;
+    long frontSamples[3] = {0, 0, 0};
+    uint8_t sideSampleCount = 0;
+    uint8_t frontSampleCount = 0;
+    uint8_t frontNoEchoCount = 0;
+    uint8_t frontClearReadings = 0;
     uint32_t lastDisplayUpdate = 0;
+
+    void setMovement(RobotState movement);
 public:
     RobotState state = RobotState::STOP;
     ServoState servoState = ServoState::CENTER;

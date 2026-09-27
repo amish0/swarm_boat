@@ -15,6 +15,17 @@ constexpr uint8_t IN_BUILT_LED = 2;
 // --- Servo setup ---
 #define SERVO_PIN 13
 
+// --- L298N motor driver (ENA/ENB jumpers fitted) ---
+constexpr uint8_t L298N_IN1_PIN = 25;
+constexpr uint8_t L298N_IN2_PIN = 26;
+constexpr uint8_t L298N_IN3_PIN = 27;
+constexpr uint8_t L298N_IN4_PIN = 32;
+constexpr uint16_t FRONT_OBSTACLE_DISTANCE_CM = 25;
+constexpr uint16_t FRONT_CLEAR_DISTANCE_CM = 35;
+constexpr uint16_t SIDE_CLEARANCE_DISTANCE_CM = 30;
+constexpr long ULTRASONIC_NO_ECHO = -1;
+constexpr uint16_t ULTRASONIC_MAX_RANGE_CM = 400;
+
 // --- Ultrasonic sensor setup ---
 #define TRIG_PIN 5
 #define ECHO_PIN 18

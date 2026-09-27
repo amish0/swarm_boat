@@ -32,6 +32,11 @@ long SensorDataCollector::getObjectDistance()
     delayMicroseconds(10);
     digitalWrite(triggerPin, LOW);
     duration = pulseIn(echoPin, HIGH, 30000UL);
+    if (duration == 0) {
+        distance = ULTRASONIC_NO_ECHO;
+        return distance;
+    }
+
     distance = duration * 0.034 / 2; // cm
     return distance;
 }
