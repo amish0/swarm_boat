@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include <WebServer.h>
 #include "config.h"
 #include "constants.h"
 #include "ota.h"
@@ -26,6 +27,12 @@ private:
         REVERSING
     };
 
+    enum class ControlMode
+    {
+        AUTONOMOUS,
+        MANUAL
+    };
+
     LedController ledController;
     ServoController servoController;
     SensorDataCollector sensorDataCollector;
@@ -39,6 +46,8 @@ private:
 
     WiFiClientSecure espClient;
     PubSubClient client{espClient};
+    WebServer webServer{80};
+    ControlMode controlMode = ControlMode::AUTONOMOUS;
     uint32_t change_robot_time = 0;
     unsigned long lastMsg = 0;
     uint32_t lastReconnectAttempt = 0;
@@ -57,9 +66,15 @@ private:
     bool buzzerIsOn = false;
     uint32_t lastBuzzerToggleAt = 0;
     uint32_t lastDisplayUpdate = 0;
+    uint32_t lastManualMotorCommandAt = 0;
 
     void setMovement(RobotState movement);
     void updateBuzzer(uint32_t now);
+    void startWebServer();
+    void handleModeRequest();
+    void handleMotorRequest();
+    void handleServoRequest();
+    void handleStatusRequest();
 public:
     RobotState state = RobotState::STOP;
     ServoState servoState = ServoState::CENTER;

@@ -15,7 +15,7 @@ flowchart LR
     Range[Range filtering]
     Avoid[Obstacle state machine]
     View[OLED / LED status]
-    Network[Wi-Fi / OTA]
+    Network[Wi-Fi / OTA / HTTP control]
   end
 
   Servo[Servo\nrotates ultrasonic sensor]
@@ -29,7 +29,7 @@ flowchart LR
   Avoid --> Driver --> Motors
   DHT --> View --> OLED
   Avoid --> View
-  Network -. OTA updates .-> Controller
+  Network -. OTA and browser commands .-> Controller
   View --> LEDs
 ```
 
@@ -219,6 +219,11 @@ stateDiagram-v2
 - Red indicates stop, green indicates forward or turning, and blue indicates reverse. The heartbeat LED blinks once per second.
 - The buzzer gives short repeating beeps during side scans and backward/turning movement; it is silent while stopped or moving forward.
 - Wi-Fi and password-protected ArduinoOTA are enabled. OTA handling runs in the main loop.
+- A browser control page is served over HTTP on port 80 after the ESP32 joins the configured router Wi-Fi. Connect the laptop to the same network and open the URL printed to Serial Monitor at `115200` baud.
+- Select `Manual` to enable the drive and servo controls. Hold a direction button to drive; releasing it sends Stop. A 900 ms command timeout stops the motors if updates from the browser stop arriving.
+- Manual servo `Left`, `Right`, and `Straight` requests stop the motors, point the sensor, wait for it to settle, then return a three-sample distance with `object`, `clear`, or `no_echo` status.
+- Selecting `Auto` stops the motors, centers the servo, resets the scan state, and returns control to autonomous obstacle avoidance.
+- The HTTP control page has no login. Use it only on a trusted local Wi-Fi network; do not expose port 80 to the public internet.
 - The MQTT publish call is currently commented out; the firmware does not send sensor telemetry.
 - Wi-Fi credentials are currently held in the firmware source. Move them to a private local configuration before sharing the project.
 
