@@ -87,10 +87,10 @@ flowchart TB
   L298N -->|OUT1 / OUT2| LEFT["Left DC motor"]
   L298N -->|OUT3 / OUT4| RIGHT["Right DC motor"]
 
-  PACK --> BUCK["5 V buck converter<br/>size for ESP32 + servo current"]
-  BUCK --> VIN["ESP32 DevKit 5V / VIN<br/>bare WROOM needs 3.3 V regulator"]
-  BUCK --> SERVO5["Servo +5 V"]
-  BUCK --> BUZZ5["5 V buzzer +"]
+  PACK --> HW131["HW-131 breadboard power module<br/>input from protected 2S pack"]
+  HW131 -->|5 V rail| VIN["ESP32 DevKit 5V / VIN<br/>bare WROOM needs 3.3 V regulator"]
+  HW131 -->|5 V rail if current capacity allows| SERVO5["Servo +5 V"]
+  HW131 -->|5 V rail, if buzzer is rated 5 V| BUZZ5["Buzzer +"]
   VIN --> ESP[ESP32]
   ESP -->|GPIO 25, 26, 27, 32| L298N
   ESP -->|GPIO 13 signal| SERVO[Servo]
@@ -106,7 +106,7 @@ flowchart TB
   ESP -->|GPIO 15 / 4 / 23 / 19| LEDS["4 LEDs, each with its own series resistor"]
 
   GND[Common ground] --- BMS
-  GND --- BUCK
+  GND --- HW131
   GND --- L298N
   GND --- ESP
   GND --- SERVO
@@ -115,6 +115,8 @@ flowchart TB
   GND --- OLED
   GND --- BUZZER
 ```
+
+The HW-131 shown is the common breadboard supply module with selectable 5 V/3.3 V rails; verify the labels and input range on your exact board. A 2S pack ranges from about 6.0 V to 8.4 V, while many HW-131/MB102 versions specify a 6.5 V minimum input. Connect the pack directly only if your module accepts the entire pack voltage range; otherwise use a suitable input DC/DC converter. Select the 5 V rail for an ESP32 DevKit `5V/VIN` input and the servo only if the HW-131 can supply the servo's peak current. Its small linear regulators can overheat or cause ESP32 resets under servo load; use a separate adequately rated 5 V regulator for the servo if needed, with grounds connected. Never feed 5 V to a bare ESP32-WROOM module.
 
 The listed `3.7 V charging module` is not identified beyond its voltage. If it is a TP4056, leave it disconnected from this 2S series pack. Do not charge the pack until the charger and BMS are confirmed as 2S-compatible. Check the motors' rated voltage before feeding the pack to L298N `VS`; the pack reaches 8.4 V when full. Many L298N boards also have a `5V-EN` regulator jumper: follow that module's markings and avoid connecting two 5 V regulator outputs together.
 
