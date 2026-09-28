@@ -15,8 +15,6 @@
 
 The firmware drives two DC motors through an L298N, scans with a servo-mounted ultrasonic sensor, and reports device state through an OLED, LEDs, buzzer, web UI, and MQTT. Audio recognition runs on an external Python, Android, or browser client; the ESP32 receives recognized text over HTTP.
 
-## Project Gallery
-
 ### System and Telemetry
 
 <table>
@@ -28,25 +26,6 @@ The firmware drives two DC motors through an L298N, scans with a servo-mounted u
     </tr>
 </table>
 
-### Robot and Interface
-
-<table>
-   <tr>
-      <td width="50%" align="center"><img src="img/contol_page_manual.jpeg" alt="Browser control page in manual mode" width="100%"><br><sub>Manual control</sub></td>
-      <td width="50%" align="center"><img src="img/control_page_auto.jpeg" alt="Browser control page in autonomous mode" width="100%"><br><sub>Autonomous control</sub></td>
-   </tr>
-   <tr>
-      <td width="50%" align="center"><img src="img/robot.jpeg" alt="Two-wheel ESP32 robot chassis" width="100%"><br><sub>Robot hardware</sub></td>
-      <td width="50%" align="center"><img src="img/oled_display.jpeg" alt="OLED showing live robot status" width="100%"><br><sub>Live OLED status</sub></td>
-   </tr>
-</table>
-
-[Additional control-page image](img/control_pag1.png)
-
-### Demonstration Videos
-
-- [Robot demonstration — clip 1](img/WhatsApp%20Video%202026-09-28%20at%2006.11.50.mp4)
-- [Robot demonstration — clip 2](img/WhatsApp%20Video%202026-09-28%20at%2006.11.57.mp4)
 
 ## Features
 
@@ -99,6 +78,27 @@ ai_boat.ino    Arduino IDE entry point
 platformio.ini PlatformIO target and dependencies
 ```
 
+---
+## Gallery
+### Robot and Interface
+
+<table>
+   <tr>
+      <td width="50%" align="center"><img src="img/contol_page_manual.jpeg" alt="Browser control page in manual mode" width="100%"><br><sub>Manual control</sub></td>
+      <td width="50%" align="center"><img src="img/control_page_auto.jpeg" alt="Browser control page in autonomous mode" width="100%"><br><sub>Autonomous control</sub></td>
+   </tr>
+   <tr>
+      <td width="50%" align="center"><img src="img/robot.jpeg" alt="Two-wheel ESP32 robot chassis" width="100%"><br><sub>Robot hardware</sub></td>
+      <td width="50%" align="center"><img src="img/oled_display.jpeg" alt="OLED showing live robot status" width="100%"><br><sub>Live OLED status</sub></td>
+   </tr>
+</table>
+
+[Additional control-page image](img/control_pag1.png)
+
+### Demonstration Videos
+
+- [Robot demonstration — clip 1](img/WhatsApp%20Video%202026-09-28%20at%2006.11.50.mp4)
+- [Robot demonstration — clip 2](img/WhatsApp%20Video%202026-09-28%20at%2006.11.57.mp4)
 ---
 
 **Documentation index:** start with [architecture](docs/architecture.md), [hardware](docs/hardware.md), [operation](docs/operation.md), or [development](docs/development.md).
