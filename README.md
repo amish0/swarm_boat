@@ -1,5 +1,12 @@
 # AI Boat Firmware
 
+[![Latest tag](https://img.shields.io/github/v/tag/VisioSphereAI/ai_boat?label=latest%20tag)](https://github.com/VisioSphereAI/ai_boat/tags)
+![Target](https://img.shields.io/badge/target-ESP32%20WROOM-E7352C?logo=espressif&logoColor=white)
+![Framework](https://img.shields.io/badge/framework-Arduino-00979D?logo=arduino&logoColor=white)
+![Build](https://img.shields.io/badge/build-PlatformIO-blue?logo=platformio&logoColor=white)
+[![Hardware guide](https://img.shields.io/badge/docs-hardware%20guide-52796F)](docs/hardware.md)
+[![MQTT telemetry](https://img.shields.io/badge/MQTT-event%20%2B%20periodic-6A5ACD)](docs/operation.md#mqtt-telemetry)
+
 > ESP32 WROOM two-wheel robot with autonomous obstacle avoidance and browser/text-command control.
 
 **Platform:** ESP32 Arduino (`esp32dev`) · **Build:** PlatformIO · **Network:** Wi-Fi, HTTP, OTA, MQTT/TLS
@@ -7,6 +14,37 @@
 ## Overview
 
 The firmware drives two DC motors through an L298N, scans with a servo-mounted ultrasonic sensor, and reports device state through an OLED, LEDs, buzzer, web UI, and MQTT. Audio recognition runs on an external Python, Android, or browser client; the ESP32 receives recognized text over HTTP.
+
+## Project Gallery
+
+### Robot and Interface
+
+<table>
+   <tr>
+      <td width="50%" align="center"><img src="img/robot.jpeg" alt="Two-wheel ESP32 robot chassis" width="100%"><br><sub>Robot hardware</sub></td>
+      <td width="50%" align="center"><img src="img/control_page_auto.jpeg" alt="Browser control page in autonomous mode" width="100%"><br><sub>Autonomous control</sub></td>
+   </tr>
+   <tr>
+      <td width="50%" align="center"><img src="img/contol_page_manual.jpeg" alt="Browser control page in manual mode" width="100%"><br><sub>Manual control</sub></td>
+      <td width="50%" align="center"><img src="img/oled_display.jpeg" alt="OLED showing live robot status" width="100%"><br><sub>Live OLED status</sub></td>
+   </tr>
+</table>
+
+### System and Telemetry
+
+<table>
+   <tr>
+      <td width="50%" align="center"><img src="img/main.png" alt="AI boat system overview diagram" width="100%"><br><sub>System overview</sub></td>
+      <td width="50%" align="center"><img src="img/mqtt.png" alt="MQTT telemetry view or diagram" width="100%"><br><sub>MQTT telemetry</sub></td>
+   </tr>
+</table>
+
+[Additional control-page image](img/control_pag1.png)
+
+### Demonstration Videos
+
+- [Robot demonstration — clip 1](img/WhatsApp%20Video%202026-09-28%20at%2006.11.50.mp4)
+- [Robot demonstration — clip 2](img/WhatsApp%20Video%202026-09-28%20at%2006.11.57.mp4)
 
 ## Features
 
