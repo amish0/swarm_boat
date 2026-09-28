@@ -23,6 +23,7 @@ constexpr uint8_t L298N_IN4_PIN = 32;
 constexpr uint8_t BUZZER_PIN = 14;
 constexpr uint16_t BUZZER_BEEP_ON_MS = 200;
 constexpr uint16_t BUZZER_BEEP_OFF_MS = 120;
+constexpr uint32_t MQTT_PERIODIC_INTERVAL_MS = 5000;
 constexpr uint16_t FRONT_OBSTACLE_DISTANCE_CM = 25;
 constexpr uint16_t FRONT_CLEAR_DISTANCE_CM = 35;
 constexpr uint16_t SIDE_CLEARANCE_DISTANCE_CM = 30;
