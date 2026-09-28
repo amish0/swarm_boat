@@ -221,10 +221,33 @@ stateDiagram-v2
 - Wi-Fi and password-protected ArduinoOTA are enabled. OTA handling runs in the main loop.
 - A browser control page is served over HTTP on port 80 after the ESP32 joins the configured router Wi-Fi. Connect the laptop to the same network and open the URL printed to Serial Monitor at `115200` baud.
 - Select `Manual` to enable the drive and servo controls. Hold a direction button to drive; releasing it sends Stop. A 900 ms command timeout stops the motors if updates from the browser stop arriving.
+- Manual Forward checks the straight-ahead range; Left and Right aim the sonar in that direction before checking. Each check uses three samples. An obstacle inside the configured clearance or any no-echo sample blocks the command and displays the reason. While held, direction commands are safety-checked again periodically.
+- Manual Backward remains available but warns that there is no rear-facing sensor, so reverse is not collision-protected. Audio Backward is limited to a 750 ms pulse for the same reason.
+- The third mode, `Audio`, accepts recognized text from an external speech-recognition client; recognition and microphone access do not run on the ESP32.
+- In Audio mode, send URL-encoded form data to `POST /api/audio` with a `text` field. Accepted text includes `start`/`forward`, `stop`, `backward`, `left`, `right`, `servo left`, `servo right`, `straight`, and `status`. `start` means collision-checked forward movement. `auto` or `autonomous` returns to autonomous mode; `manual` switches to Manual mode.
+- Motor movement commands use the same ultrasonic collision checks as Manual mode. A blocked command returns HTTP 409 with a JSON `error`; success returns JSON. Reverse remains unprotected because there is no rear sensor.
+- `GET /api/status` returns the current mode, movement, and front distance as JSON. Mode can also be selected with `POST /api/mode` using `mode=auto`, `mode=manual`, or `mode=audio`.
+- To test without speech recognition, select Audio in the control page and type a recognized phrase into the text field. A Python client using `requests` can follow this pattern:
+
+```python
+import requests
+
+base = "http://192.168.1.42"  # replace with the ESP32 IP printed to Serial
+requests.post(f"{base}/api/mode", data={"mode": "audio"}, timeout=3)
+
+recognized_text = "forward"  # replace with the speech recognizer result
+response = requests.post(
+  f"{base}/api/audio",
+  data={"text": recognized_text},
+  timeout=3,
+)
+print(response.status_code, response.json())
+print(requests.get(f"{base}/api/status", timeout=3).json())
+```
 - Manual servo `Left`, `Right`, and `Straight` requests stop the motors, point the sensor, wait for it to settle, then return a three-sample distance with `object`, `clear`, or `no_echo` status.
 - Selecting `Auto` stops the motors, centers the servo, resets the scan state, and returns control to autonomous obstacle avoidance.
 - The HTTP control page has no login. Use it only on a trusted local Wi-Fi network; do not expose port 80 to the public internet.
-- The MQTT publish call is currently commented out; the firmware does not send sensor telemetry.
+- MQTT events publish on `esp32/sensors` from a dedicated FreeRTOS worker task. The control loop only copies a small event snapshot into a 16-entry queue; TLS connect/reconnect and publishing happen in the worker, so broker delays do not block motor or sensor logic. Events include `boot`, `movement`, `mode_changed`, and `sensor_reading`, plus a `periodic` telemetry event every 5 seconds. Each JSON payload includes event name, movement, servo position, mode, `distanceCm`, `temperatureC`, and `humidityPercent`. If the queue fills while offline, the oldest snapshot is dropped to retain the latest state.
 - Wi-Fi credentials are currently held in the firmware source. Move them to a private local configuration before sharing the project.
 
 ## Build and Upload

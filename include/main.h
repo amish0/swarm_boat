@@ -4,6 +4,9 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <WebServer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 #include "config.h"
 #include "constants.h"
 #include "ota.h"
@@ -30,7 +33,19 @@ private:
     enum class ControlMode
     {
         AUTONOMOUS,
-        MANUAL
+        MANUAL,
+        AUDIO
+    };
+
+    struct MqttEvent
+    {
+        char event[20];
+        uint8_t motorState;
+        uint8_t servoState;
+        uint8_t controlMode;
+        long distanceCm;
+        float temperatureC;
+        float humidityPercent;
     };
 
     LedController ledController;
@@ -46,11 +61,10 @@ private:
 
     WiFiClientSecure espClient;
     PubSubClient client{espClient};
+    QueueHandle_t mqttEventQueue = nullptr;
     WebServer webServer{80};
     ControlMode controlMode = ControlMode::AUTONOMOUS;
     uint32_t change_robot_time = 0;
-    unsigned long lastMsg = 0;
-    uint32_t lastReconnectAttempt = 0;
     long distance_c = 0;
     long distance_l = 0;
     long distance_r = 0;
@@ -63,18 +77,30 @@ private:
     uint8_t frontSampleCount = 0;
     uint8_t frontNoEchoCount = 0;
     uint8_t frontClearReadings = 0;
+    float latestTemperatureC = 0.0f;
+    float latestHumidityPercent = 0.0f;
     bool buzzerIsOn = false;
     uint32_t lastBuzzerToggleAt = 0;
     uint32_t lastDisplayUpdate = 0;
     uint32_t lastManualMotorCommandAt = 0;
+    uint32_t lastManualSafetyCheckAt = 0;
+    uint32_t lastPeriodicMqttAt = 0;
+    String safetyMessage = "Ready";
 
     void setMovement(RobotState movement);
     void updateBuzzer(uint32_t now);
     void startWebServer();
     void handleModeRequest();
     void handleMotorRequest();
+    void handleMotorCommand(String command);
     void handleServoRequest();
+    void handleServoDirection(String direction);
+    void handleAudioRequest();
     void handleStatusRequest();
+    void setControlMode(ControlMode mode);
+    void enqueueMqttEvent(const char* eventName);
+    static void mqttTaskEntry(void* parameter);
+    void mqttTask();
 public:
     RobotState state = RobotState::STOP;
     ServoState servoState = ServoState::CENTER;
@@ -82,8 +108,6 @@ public:
     ~main();
     void begin();
     void loop();
-    void reconnectMQTT();
-    void publishMQTT(MotorState motorState, ServoState servoState, bool signalBlink, float temperature, float humidity, float distance);
 };
 
 #endif
