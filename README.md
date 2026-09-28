@@ -17,25 +17,27 @@ The firmware drives two DC motors through an L298N, scans with a servo-mounted u
 
 ## Project Gallery
 
-### Robot and Interface
-
-<table>
-   <tr>
-      <td width="50%" align="center"><img src="img/robot.jpeg" alt="Two-wheel ESP32 robot chassis" width="100%"><br><sub>Robot hardware</sub></td>
-      <td width="50%" align="center"><img src="img/control_page_auto.jpeg" alt="Browser control page in autonomous mode" width="100%"><br><sub>Autonomous control</sub></td>
-   </tr>
-   <tr>
-      <td width="50%" align="center"><img src="img/contol_page_manual.jpeg" alt="Browser control page in manual mode" width="100%"><br><sub>Manual control</sub></td>
-      <td width="50%" align="center"><img src="img/oled_display.jpeg" alt="OLED showing live robot status" width="100%"><br><sub>Live OLED status</sub></td>
-   </tr>
-</table>
-
 ### System and Telemetry
 
 <table>
    <tr>
-      <td width="50%" align="center"><img src="img/main.png" alt="AI boat system overview diagram" width="100%"><br><sub>System overview</sub></td>
-      <td width="50%" align="center"><img src="img/mqtt.png" alt="MQTT telemetry view or diagram" width="100%"><br><sub>MQTT telemetry</sub></td>
+      <td width="100%" align="center"><img src="img/main.png" alt="AI boat system overview diagram" width="100%"><br><sub>System overview</sub></td>
+   </tr>
+   <tr>
+      <td width="100%" align="center"><img src="img/mqtt.png" alt="MQTT telemetry view or diagram" width="100%"><br><sub>MQTT telemetry</sub></td>
+    </tr>
+</table>
+
+### Robot and Interface
+
+<table>
+   <tr>
+      <td width="50%" align="center"><img src="img/contol_page_manual.jpeg" alt="Browser control page in manual mode" width="100%"><br><sub>Manual control</sub></td>
+      <td width="50%" align="center"><img src="img/control_page_auto.jpeg" alt="Browser control page in autonomous mode" width="100%"><br><sub>Autonomous control</sub></td>
+   </tr>
+   <tr>
+      <td width="50%" align="center"><img src="img/robot.jpeg" alt="Two-wheel ESP32 robot chassis" width="100%"><br><sub>Robot hardware</sub></td>
+      <td width="50%" align="center"><img src="img/oled_display.jpeg" alt="OLED showing live robot status" width="100%"><br><sub>Live OLED status</sub></td>
    </tr>
 </table>
 
@@ -58,18 +60,12 @@ The firmware drives two DC motors through an L298N, scans with a servo-mounted u
 
 ## Quick Start
 
-1. Install PlatformIO and connect the ESP32 DevKit over USB.
-2. Set private Wi-Fi and MQTT credentials in the firmware configuration.
-3. Review the [hardware and power guide](docs/hardware.md), especially the 2S battery/charger warning.
-4. Build and upload:
-
-   ```sh
-   pio run
-   pio run -t upload
-   pio device monitor -b 115200
-   ```
-
-5. Connect a laptop to the same Wi-Fi as the ESP32 and open the IP address printed in Serial Monitor.
+1. Install Arduino ide and install packages
+2. connect the ESP32 DevKit over USB.
+3. Set private Wi-Fi and MQTT credentials in the firmware configuration.
+4. Review the [hardware and power guide](docs/hardware.md), especially the 2S battery/charger warning.
+5. Build and upload the firmware using PlatformIO or Arduino IDE.
+6. Connect a laptop to the same Wi-Fi as the ESP32 and open the IP address printed in Serial Monitor.
 
 ## Documentation
 
