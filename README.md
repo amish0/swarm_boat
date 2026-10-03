@@ -13,7 +13,7 @@
 
 ## Overview
 
-The firmware drives two DC motors through an L298N, scans with a servo-mounted ultrasonic sensor, and reports device state through an OLED, LEDs, buzzer, web UI, and MQTT. Audio recognition runs on an external Python, Android, or browser client; the ESP32 receives recognized text over HTTP.
+The firmware drives two DC motors through an L298N, scans with a servo-mounted ultrasonic sensor, and reports device state through an OLED, LEDs, buzzer, web UI, and MQTT.
 
 ### System and Telemetry
 
@@ -30,10 +30,11 @@ The firmware drives two DC motors through an L298N, scans with a servo-mounted u
 ## Features
 
 - **Autonomous obstacle avoidance:** median-filtered ultrasonic readings, servo-based side scans, differential steering, and configurable stop/clearance thresholds.
-- **Three control modes:** Auto, Manual, and Audio. A local web page controls the robot; external clients can send recognized text commands over HTTP.
-- **Collision-aware remote drive:** Forward and turns check the ultrasonic path and report blocked commands. Audio reverse is time-limited because there is no rear sensor.
+- **Two control modes:** Auto and Manual. The local web page provides hold-to-drive controls and sensor positioning.
+- **Collision-aware manual drive:** Forward checks the front sensor; turns use side clearance when a return is available and warn when the side scan returns no echo. Reverse has no rear sensor protection.
 - **Live onboard status:** the SSD1306 OLED displays movement, distance, temperature, and humidity; LEDs indicate motion/heartbeat, and the buzzer signals scans and avoidance actions.
 - **Asynchronous MQTT telemetry:** a FreeRTOS worker publishes event-driven updates and periodic snapshots every 5 seconds to `esp32/sensors`, including distance, temperature, humidity, movement, servo position, and mode.
+- **Authenticated telemetry monitor:** the Flask app in [`monitoring/`](monitoring/) keeps MQTT credentials server-side and provides protected live telemetry, durable history, alerts, and exports.
 - **Remote maintenance:** Wi-Fi connectivity and password-protected ArduinoOTA firmware updates.
 - **ESP32 development workflow:** PlatformIO `esp32dev` target plus an Arduino IDE entry point.
 
@@ -46,13 +47,18 @@ The firmware drives two DC motors through an L298N, scans with a servo-mounted u
 5. Build and upload the firmware using PlatformIO or Arduino IDE.
 6. Connect a laptop to the same Wi-Fi as the ESP32 and open the IP address printed in Serial Monitor.
 
+## Client Telemetry Monitor
+
+See the [monitor deployment guide](docs/monitoring.md) to configure login credentials, connect the server to MQTT/TLS, and run the authenticated dashboard over HTTPS. Do not expose the Flask development server directly to the internet.
+
 ## Documentation
 
 | Guide | Contents |
 | --- | --- |
+| [Project proposal](docs/project-proposal.md) | Project goals, use cases, proposed fleet architecture, and implementation plan |
 | [System architecture](docs/architecture.md) | High-level diagram, operating modes, obstacle logic, MQTT data flow, safety boundaries |
 | [Hardware and wiring](docs/hardware.md) | Component list, GPIO table, circuit diagrams, power and charging requirements |
-| [Operation and APIs](docs/operation.md) | Auto/Manual/Audio operation, HTTP endpoints, recognized commands, Python example, MQTT payload |
+| [Operation and APIs](docs/operation.md) | Auto/Manual operation, HTTP endpoints, MQTT payload |
 | [Development and bring-up](docs/development.md) | Build/upload, first power-up, configuration, troubleshooting |
 
 ## Releases
@@ -65,15 +71,17 @@ The firmware drives two DC motors through an L298N, scans with a servo-mounted u
 
 **Do not charge two series-connected 3.7 V cells with a TP4056.** A 2S pack requires a 2S balancing BMS and a compatible 8.4 V charger. Verify all board input/current ratings, motor voltage, and ultrasonic ECHO level before wiring. Test with the chassis lifted and propellers clear.
 
-The HTTP page has no authentication; keep it on a trusted local network. Audio recognition is client-side and does not run on the ESP32.
+The firmware's onboard HTTP control page has no authentication; keep it on a trusted local network. The separate Flask telemetry monitor requires login and should be deployed behind HTTPS.
 
 ## Project Structure
 
 ```text
+monitoring/   Authenticated Flask monitor, templates, static dashboard, tests
 include/       Shared interfaces and hardware configuration
 src/           Firmware modules and control logic
 docs/          Architecture, hardware, operation, development
 releases/      Versioned release notes
+requirements.txt Flask monitor dependencies
 ai_boat.ino    Arduino IDE entry point
 platformio.ini PlatformIO target and dependencies
 ```

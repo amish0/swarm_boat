@@ -4,3 +4,8 @@ build/
 *.elf
 *.bin
 *.map
+.env
+.env.*
+!.env.example
+.venv/
+instance/

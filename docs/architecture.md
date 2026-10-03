@@ -13,15 +13,14 @@ flowchart LR
 
   subgraph ESP32[ESP32 WROOM firmware]
     Web[HTTP web server]
-    Modes[Auto / Manual / Audio mode manager]
+    Modes[Auto / Manual mode manager]
     Logic[Obstacle and command safety logic]
     Queue[16-entry MQTT event queue]
     Worker[FreeRTOS MQTT worker]
     Display[OLED and LED status]
   end
 
-  Laptop[Browser / Python / Android client]
-  Speech[External speech recognition]
+  Laptop[Browser client]
   Servo[Servo rotates range sensor]
   HBridge[L298N dual H-bridge]
   Motors[Left and right DC motors]
@@ -31,7 +30,6 @@ flowchart LR
   Buzzer[Active buzzer and BC547 driver]
 
   Laptop -->|HTTP commands and status| Web
-  Speech -->|Recognized text| Web
   Web --> Modes --> Logic
   US --> Logic
   Logic --> Servo --> US
@@ -48,9 +46,6 @@ flowchart LR
 | --- | --- | --- |
 | Auto | ESP32 | Samples the front range, stops for a detected obstacle, scans left/right, then turns toward available clearance or briefly reverses. |
 | Manual | Browser | Hold-to-drive commands are sent over HTTP. Forward/left/right pass through ultrasonic clearance checks; manual drive has a command timeout. |
-| Audio | External client | A Python, Android, or browser recognizer sends recognized text to the HTTP API. Movement commands share the same range checks; reverse is time-limited because there is no rear sensor. |
-
-Speech-to-text runs on the client device, not on the ESP32. The ESP32 receives command text and returns command/status JSON.
 
 ## Autonomous Decision Flow
 
@@ -97,8 +92,8 @@ The 16-entry queue carries boot, movement, mode, sensor-reading, and 5-second pe
 ## Safety Boundaries
 
 - The ultrasonic sensor faces front/left/right only; reverse cannot be collision-checked.
-- Audio reverse is limited to 750 ms. Manual reverse remains available with a warning.
-- No-echo blocks manual/audio forward and turning commands; the automatic policy treats repeated no-echo as open range.
+- Manual reverse has no rear sensor protection.
+- No-echo blocks manual forward. A manual turn can proceed on a side no-echo reading with a warning; Auto maps no-echo to max range.
 - The browser server has no login and should remain on a trusted local Wi-Fi network.
 
 ---

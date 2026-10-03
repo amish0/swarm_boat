@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f4ef">
+  <title>AI Boat | MQTT Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f2f4ef;
+      --white: #fff;
+      --ink: #172521;
+      --muted: #77817a;
+      --line: #dfe5dc;
+      --green: #176c59;
+      --green-soft: #e2f1e9;
+      --lime: #d9f26a;
+      --orange: #e87748;
+      --orange-soft: #fff0e8;
+      --blue: #4e82a1;
+      --blue-soft: #e8f1f5;
+      --red: #c84338;
+      --mono: "DM Mono", Consolas, monospace;
+      --sans: "Manrope", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 13px; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1500px; margin: 0 auto; padding: 26px 34px 38px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; background: var(--green); border-radius: 11px; color: var(--lime); }
+    .brand-mark svg { width: 23px; height: 23px; }
+    .brand-name { font-weight: 800; font-size: 15px; letter-spacing: .02em; }
+    .brand-sub { color: var(--muted); margin-top: 2px; font-size: 11px; }
+    .top-right { display: flex; align-items: center; gap: 20px; }
+    .read-only { color: var(--muted); font-size: 11px; display: flex; align-items: center; gap: 7px; }
+    .read-only svg { width: 14px; color: var(--green); }
+    .clock { font: 12px var(--mono); color: var(--muted); }
+    .title-row { display: flex; align-items: end; justify-content: space-between; margin: 29px 0 20px; gap: 20px; }
+    h1 { font-size: 27px; line-height: 1.1; margin: 0; letter-spacing: -.035em; }
+    .subtitle { color: var(--muted); margin: 7px 0 0; font-size: 12px; }
+    .device-state { display: flex; align-items: center; gap: 10px; color: var(--muted); font: 11px var(--mono); }
+    .state-dot { width: 8px; height: 8px; border-radius: 50%; background: #a5ada6; box-shadow: 0 0 0 4px #e5e8e2; }
+    .state-dot.connected { background: #2e9b70; box-shadow: 0 0 0 4px #dcefe5; }
+    .state-dot.waiting { background: #e0a545; box-shadow: 0 0 0 4px #fbf0d9; }
+    .connect-panel { background: var(--ink); color: white; border-radius: 9px; padding: 15px 17px; display: grid; grid-template-columns: 1fr 1fr 1fr 1.3fr auto; gap: 12px; align-items: end; }
+    .field { min-width: 0; }
+    .field label { display: block; color: #a6b3ac; text-transform: uppercase; letter-spacing: .09em; font-size: 9px; font-weight: 700; margin-bottom: 6px; }
+    .field input, .field select { height: 34px; width: 100%; background: #263630; color: white; border: 1px solid #40504a; border-radius: 5px; padding: 0 9px; outline: none; font-size: 11px; }
+    .field input:focus, .field select:focus { border-color: var(--lime); }
+    .field input::placeholder { color: #89968f; }
+    .connect-value { min-height: 34px; display: flex; align-items: center; gap: 8px; color: #f3f6ef; font: 11px var(--mono); overflow-wrap: anywhere; }
+    .connect-value .state-dot { flex: none; }
+    .connect-btn { height: 34px; min-width: 96px; border: 0; border-radius: 5px; background: var(--lime); color: var(--ink); font-weight: 800; padding: 0 13px; }
+    .connect-btn:hover { background: #e5fa91; }
+    .connect-btn.disconnect { background: #34433d; color: white; }
+    .connect-meta { display: flex; align-items: center; justify-content: space-between; color: #a6b3ac; font: 10px var(--mono); padding: 10px 2px 0; }
+    .logout-form { margin: 0; }
+    .logout-button { border: 0; background: none; color: var(--lime); padding: 0; font: inherit; text-decoration: underline; text-underline-offset: 3px; }
+    .alert-banner { display: none; margin-top: 13px; border: 1px solid #f0c5ad; background: var(--orange-soft); color: #8f4524; padding: 10px 13px; border-radius: 6px; align-items: center; gap: 9px; font-size: 11px; }
+    .alert-banner.visible { display: flex; }
+    .alert-banner svg { width: 16px; flex: none; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 19px; }
+    .metric { background: var(--white); border: 1px solid var(--line); border-radius: 7px; min-height: 123px; padding: 14px 16px 12px; position: relative; overflow: hidden; }
+    .metric:after { content: ""; position: absolute; width: 52px; height: 52px; right: -20px; bottom: -24px; border: 1px solid var(--line); border-radius: 50%; box-shadow: 0 0 0 8px rgba(223,229,220,.38), 0 0 0 16px rgba(223,229,220,.2); }
+    .metric-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .metric-icon { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 6px; background: var(--green-soft); color: var(--green); }
+    .metric:nth-child(2) .metric-icon { background: var(--orange-soft); color: var(--orange); }
+    .metric:nth-child(3) .metric-icon { background: var(--blue-soft); color: var(--blue); }
+    .metric:nth-child(4) .metric-icon { background: #f1f0dc; color: #897a21; }
+    .metric-icon svg { width: 15px; height: 15px; }
+    .metric-value { font-size: 28px; font-weight: 700; letter-spacing: -.05em; margin-top: 10px; line-height: 1; }
+    .metric-unit { font: 11px var(--mono); color: var(--muted); margin-left: 4px; letter-spacing: 0; }
+    .metric-foot { font: 10px var(--mono); color: var(--muted); margin-top: 8px; }
+    .state-strip { display: flex; gap: 7px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+    .state-label { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-right: 3px; }
+    .tag { display: inline-flex; align-items: center; min-height: 23px; border: 1px solid var(--line); background: #fff; border-radius: 4px; padding: 0 9px; color: var(--muted); font: 10px var(--mono); }
+    .tag strong { color: var(--ink); font-weight: 500; margin-left: 4px; }
+    .tag.mode { color: var(--green); background: var(--green-soft); border-color: #c9e4d4; }
+    .main-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, .8fr); gap: 13px; margin-top: 19px; }
+    .panel { background: var(--white); border: 1px solid var(--line); border-radius: 7px; min-width: 0; }
+    .panel-head { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #edf0eb; gap: 12px; }
+    .panel-title { font-size: 12px; font-weight: 800; }
+    .panel-kicker { color: var(--muted); font: 10px var(--mono); margin-top: 3px; }
+    .chart-tools { display: flex; align-items: center; gap: 5px; }
+    .select-compact, .icon-btn { height: 28px; background: white; border: 1px solid var(--line); border-radius: 4px; color: var(--ink); font-size: 10px; padding: 0 8px; }
+    .icon-btn { width: 29px; padding: 0; display: grid; place-items: center; }
+    .icon-btn svg { width: 14px; height: 14px; }
+    .icon-btn:hover, .select-compact:hover { border-color: #aab9ae; }
+    .chart-wrap { height: 230px; padding: 12px 14px 5px; position: relative; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .chart-empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); font-size: 11px; pointer-events: none; }
+    .chart-empty span { display: block; margin-top: 5px; font: 10px var(--mono); }
+    .chart-legend { display: flex; justify-content: space-between; padding: 0 15px 12px; color: var(--muted); font: 9px var(--mono); }
+    .side-stack { display: grid; grid-template-rows: 1fr 1fr; gap: 13px; }
+    .health-body { padding: 13px 15px; }
+    .health-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f0f2ee; font-size: 10px; }
+    .health-row:last-child { border: 0; }
+    .health-row span:first-child { color: var(--muted); }
+    .health-row strong { font: 10px var(--mono); font-weight: 500; }
+    .health-ok { color: var(--green); }
+    .health-warn { color: var(--orange); }
+    .threshold-body { padding: 12px 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .threshold-body label { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .threshold-body input { display: block; width: 100%; height: 29px; margin-top: 5px; border: 1px solid var(--line); border-radius: 4px; padding: 0 7px; color: var(--ink); font: 11px var(--mono); }
+    .events { margin-top: 14px; }
+    .events-head { height: 53px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; gap: 10px; }
+    .event-actions { display: flex; align-items: center; gap: 6px; }
+    .search { height: 28px; width: 160px; border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; outline: none; font-size: 10px; }
+    .search:focus { border-color: var(--green); }
+    .text-btn { height: 28px; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 4px; padding: 0 9px; font-size: 10px; }
+    .text-btn:hover { border-color: #aab9ae; }
+    .event-table-wrap { overflow: auto; max-height: 260px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
+    th { position: sticky; top: 0; z-index: 1; background: #f8f9f6; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; }
+    th, td { padding: 10px 14px; border-top: 1px solid #edf0eb; white-space: nowrap; }
+    td { font-family: var(--mono); }
+    td.topic { color: var(--blue); max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+    td.event-name { color: var(--green); }
+    tr.message-row { cursor: pointer; }
+    tr.message-row:hover { background: #f8faf6; }
+    .empty-row td { color: var(--muted); text-align: center; padding: 24px; font: 11px var(--sans); }
+    .footer { display: flex; justify-content: space-between; color: var(--muted); font: 9px var(--mono); padding: 14px 2px 0; }
+    dialog { width: min(680px, calc(100% - 24px)); border: 1px solid var(--line); border-radius: 8px; padding: 0; box-shadow: 0 22px 70px #14221f38; }
+    dialog::backdrop { background: #101c1980; }
+    .dialog-head { display: flex; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 800; }
+    .dialog-head button { border: 0; background: transparent; font-size: 20px; line-height: 1; }
+    .dialog-meta { padding: 12px 16px 0; color: var(--muted); font: 10px var(--mono); }
+    pre { margin: 12px 16px 16px; padding: 14px; border-radius: 5px; background: #172521; color: #d9f26a; max-height: 55vh; overflow: auto; font: 11px/1.6 var(--mono); }
+    .toast { position: fixed; right: 20px; bottom: 20px; background: var(--ink); color: white; padding: 11px 15px; border-radius: 5px; box-shadow: 0 6px 25px #1725212c; font-size: 11px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 1000px) {
+      .shell { padding: 20px 20px 30px; }
+      .connect-panel { grid-template-columns: repeat(3, 1fr); }
+      .connect-btn { width: 100%; }
+      .main-grid { grid-template-columns: 1fr; }
+      .side-stack { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+    }
+    @media (max-width: 620px) {
+      .shell { padding: 15px 12px 24px; }
+      .topbar { align-items: flex-start; }
+      .top-right { gap: 9px; align-items: flex-end; flex-direction: column; }
+      .read-only { display: none; }
+      .title-row { align-items: flex-start; flex-direction: column; margin-top: 22px; gap: 12px; }
+      h1 { font-size: 24px; }
+      .connect-panel { grid-template-columns: 1fr 1fr; gap: 9px; padding: 12px; }
+      .field:first-child { grid-column: auto; }
+      .connect-btn { grid-column: 1 / -1; }
+      .connect-meta { gap: 8px; align-items: flex-start; flex-direction: column; }
+      .metrics { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 13px; }
+      .metric { min-height: 112px; padding: 11px; }
+      .metric-value { font-size: 24px; }
+      .side-stack { grid-template-columns: 1fr; }
+      .panel-head { padding: 0 11px; }
+      .chart-wrap { height: 200px; padding-left: 8px; padding-right: 8px; }
+      .chart-tools { gap: 3px; }
+      .select-compact { padding: 0 5px; max-width: 105px; }
+      .events-head { height: auto; min-height: 53px; align-items: flex-start; flex-direction: column; padding: 12px; }
+      .event-actions { width: 100%; flex-wrap: wrap; }
+      .search { flex: 1; min-width: 100px; }
+      th, td { padding: 9px 10px; }
+      .footer { gap: 8px; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15.5c2.2 0 2.2-1.7 4.4-1.7s2.2 1.7 4.4 1.7 2.2-1.7 4.4-1.7 2.2 1.7 4.4 1.7M5 18.5h14M8 11l4-7 4 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><div class="brand-name">AI BOAT <span style="color:var(--green)">/</span> FIELD MONITOR</div><div class="brand-sub">ESP32 telemetry console</div></div>
+      </div>
+      <div class="top-right">
+        <div class="read-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>READ-ONLY MONITOR</div>
+        <div class="clock" id="clock">--:--:--</div>
+      </div>
+    </header>
+
+    <section class="title-row">
+      <div><h1>Telemetry overview</h1><p class="subtitle">Live sensor snapshots and device events from your boat.</p></div>
+      <div class="device-state"><span class="state-dot" id="connection-dot"></span><span id="connection-label">DISCONNECTED</span><span id="last-seen">· no messages</span></div>
+    </section>
+
+    <section aria-label="MQTT service status">
+      <div class="connect-panel">
+        <div class="field"><label>MQTT service</label><div class="connect-value" id="mqtt-service-state">CHECKING</div></div>
+        <div class="field"><label>Subscribed topic</label><div class="connect-value" id="server-topic">esp32/sensors</div></div>
+        <div class="field"><label>Ingestion</label><div class="connect-value">SERVER-SIDE · TLS</div></div>
+        <div class="field"><label>Last server sync</label><div class="connect-value" id="server-sync">Waiting for API</div></div>
+        <button class="connect-btn" id="refresh-button" type="button">Refresh</button>
+      </div>
+      <div class="connect-meta"><span id="connection-detail">Broker credentials remain on the server. This dashboard is read-only.</span><form class="logout-form" method="post" action="/logout"><input type="hidden" name="csrf_token" value="__CSRF_TOKEN__"><button class="logout-button" type="submit">Sign out</button></form></div>
+    </section>
+    <div class="alert-banner" id="alert-banner" role="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5m0 3h.01" stroke-linecap="round"/></svg><span id="alert-text"></span></div>
+
+    <section class="metrics" aria-label="Current telemetry">
+      <article class="metric"><div class="metric-head">Distance <span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h18M5 9l-2 3 2 3m14-6 2 3-2 3M8 9v6m4-8v10m4-8v6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div><div class="metric-value"><span id="distance-value">--</span><span class="metric-unit">cm</span></div><div class="metric-foot" id="distance-foot">Waiting for sensor data</div></article>
+      <article class="metric"><div class="metric-head">Temperature <span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 14.8V5a3 3 0 0 0-6 0v9.8a5 5 0 1 0 6 0Z"/><path d="M11 11v7" stroke-linecap="round"/></svg></span></div><div class="metric-value"><span id="temperature-value">--</span><span class="metric-unit">°C</span></div><div class="metric-foot" id="temperature-foot">Ambient sensor</div></article>
+      <article class="metric"><div class="metric-head">Humidity <span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3s7 7.2 7 12a7 7 0 0 1-14 0c0-4.8 7-12 7-12Z"/><path d="M9 16a3 3 0 0 0 3 3" stroke-linecap="round"/></svg></span></div><div class="metric-value"><span id="humidity-value">--</span><span class="metric-unit">%</span></div><div class="metric-foot" id="humidity-foot">Ambient sensor</div></article>
+      <article class="metric"><div class="metric-head">Messages <span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v12H9l-5 4V5Z"/><path d="M8 9h8m-8 4h5" stroke-linecap="round"/></svg></span></div><div class="metric-value"><span id="message-count">0</span></div><div class="metric-foot" id="message-rate">0 / min · session</div></article>
+    </section>
+
+    <div class="state-strip" aria-label="Device state"><span class="state-label">Device state</span><span class="tag">MODE<strong id="mode-value">--</strong></span><span class="tag">MOVEMENT<strong id="movement-value">--</strong></span><span class="tag">SERVO<strong id="servo-value">--</strong></span><span class="tag mode" id="event-tag">EVENT<strong id="event-value">--</strong></span></div>
+
+    <section class="main-grid">
+      <article class="panel">
+        <div class="panel-head"><div><div class="panel-title">Sensor history</div><div class="panel-kicker" id="chart-caption">No samples in this session</div></div><div class="chart-tools"><select class="select-compact" id="chart-metric" aria-label="Chart metric"><option value="distanceCm">Distance · cm</option><option value="temperatureC">Temperature · °C</option><option value="humidityPercent">Humidity · %</option></select><select class="select-compact" id="chart-range" aria-label="Chart time range"><option value="30">30 min</option><option value="5">5 min</option><option value="60">1 hour</option></select></div></div>
+        <div class="chart-wrap"><canvas id="history-chart" aria-label="Selected sensor history" role="img"></canvas><div class="chart-empty" id="chart-empty">Waiting for telemetry<span>Snapshots appear here as they arrive</span></div></div>
+        <div class="chart-legend"><span id="chart-minmax">MIN -- &nbsp; MAX --</span><span>LOCAL TIME</span></div>
+      </article>
+      <div class="side-stack">
+        <article class="panel">
+          <div class="panel-head"><div><div class="panel-title">Link health</div><div class="panel-kicker">Connection and data quality</div></div></div>
+          <div class="health-body">
+            <div class="health-row"><span>Broker</span><strong id="health-broker">Offline</strong></div>
+            <div class="health-row"><span>Subscribed topic</span><strong id="health-topic">esp32/sensors</strong></div>
+            <div class="health-row"><span>Last message</span><strong id="health-age">Never</strong></div>
+            <div class="health-row"><span>Payload parsing</span><strong id="health-parse">No data</strong></div>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><div class="panel-title">Alert thresholds</div><div class="panel-kicker">Alerts run locally in this page</div></div><button class="icon-btn" id="save-thresholds" type="button" title="Save alert thresholds" aria-label="Save alert thresholds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h12l3 3v13H4V4h1Z"/><path d="M8 4v6h8V4M8 20v-7h8v7"/></svg></button></div>
+          <div class="threshold-body"><label>Distance below (cm)<input id="distance-threshold" type="number" min="0" step="1" value="20"></label><label>Stale after (sec)<input id="stale-threshold" type="number" min="5" step="5" value="15"></label></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel events" id="events">
+      <div class="events-head"><div><div class="panel-title">Message stream <span class="panel-kicker" id="stream-count">· 0 captured</span></div><div class="panel-kicker">Select a row to inspect the full payload</div></div><div class="event-actions"><input class="search" id="event-search" type="search" placeholder="Filter topic, event, mode…" aria-label="Filter messages"><button class="text-btn" id="pause-button" type="button">Pause</button><button class="text-btn" id="export-json" type="button">JSON</button><button class="text-btn" id="export-csv" type="button">CSV</button><button class="text-btn" id="clear-button" type="button">Clear</button></div></div>
+      <div class="event-table-wrap"><table><thead><tr><th>Received</th><th>Topic</th><th>Event</th><th>Movement</th><th>Mode</th><th>Distance</th><th>Temperature</th><th>Humidity</th></tr></thead><tbody id="message-rows"><tr class="empty-row"><td colspan="8">Connect to your broker to receive telemetry.</td></tr></tbody></table></div>
+    </section>
+    <footer class="footer"><span>AI BOAT TELEMETRY · MQTT 3.1.1 OVER TLS</span><span>Read-only · bounded telemetry history in SQLite</span></footer>
+  </main>
+  <dialog id="message-dialog"><div class="dialog-head"><span>Message payload</span><button type="button" id="close-dialog" aria-label="Close">×</button></div><div class="dialog-meta" id="dialog-meta"></div><pre id="dialog-payload"></pre></dialog>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script nonce="__CSP_NONCE__">
+    (() => {
+      const maxMessages = 2000;
+      const state = { messages: [], samples: [], paused: false, lastMessageAt: null, lastMessageId: 0, polling: false, toastTimer: null, staleAlerted: false };
+      const $ = (id) => document.getElementById(id);
+      const safeText = (value) => value === undefined || value === null ? "--" : String(value);
+      const time = (date) => date.toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const numberOrNull = (value) => value !== "" && value !== null && Number.isFinite(Number(value)) ? Number(value) : null;
+
+      function showToast(message) {
+        const toast = $("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(state.toastTimer);
+        state.toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+      }
+
+      function updateServiceStatus(status) {
+        const connected = Boolean(status.connected);
+        const configured = Boolean(status.configured);
+        const label = connected ? "CONNECTED" : configured ? "BROKER OFFLINE" : "NOT CONFIGURED";
+        $("connection-dot").className = `state-dot${connected ? " connected" : configured ? " waiting" : ""}`;
+        $("connection-label").textContent = label;
+        $("mqtt-service-state").textContent = label;
+        $("health-broker").textContent = connected ? "Connected" : configured ? "Reconnecting" : "Not configured";
+        $("health-broker").className = connected ? "health-ok" : configured ? "health-warn" : "";
+        $("health-topic").textContent = status.topic || "--";
+        $("server-topic").textContent = status.topic || "--";
+        $("connection-detail").textContent = status.error || "Broker credentials remain on the server. This dashboard is read-only.";
+      }
+
+      async function pollTelemetry() {
+        if (state.polling) return;
+        state.polling = true;
+        try {
+          const response = await fetch(`/api/telemetry?after=${state.lastMessageId}&limit=500`, {
+            cache: "no-store",
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+          });
+          if (response.status === 401) {
+            window.location.assign("/login");
+            return;
+          }
+          if (!response.ok) throw new Error(`Telemetry service returned ${response.status}`);
+          const result = await response.json();
+          updateServiceStatus(result.status || {});
+          const batch = result.messages || [];
+          if (state.lastMessageId === 0) batch.sort((left, right) => left.id - right.id);
+          for (const stored of batch) ingestServerMessage(stored);
+          $("server-sync").textContent = time(new Date());
+          if (batch.length && !state.paused) {
+            updateTelemetry(state.messages[0].data);
+            renderMessages();
+            updateHealthAge();
+            updateCounters();
+            drawChart();
+            checkAlerts(state.messages[0].data);
+          }
+        } catch (error) {
+          $("connection-detail").textContent = `Telemetry service unavailable: ${error.message}`;
+          $("health-broker").textContent = "API unavailable";
+          $("health-broker").className = "health-warn";
+        } finally {
+          state.polling = false;
+        }
+      }
+
+      function ingestServerMessage(stored) {
+        const receivedAt = new Date(stored.receivedAt);
+        const data = stored.payload && typeof stored.payload === "object" ? stored.payload : { raw: stored.raw };
+        const message = { id: stored.id, topic: stored.topic, raw: stored.raw || JSON.stringify(data), data, receivedAt };
+        state.messages.unshift(message);
+        if (state.messages.length > maxMessages) state.messages.length = maxMessages;
+        state.lastMessageId = Math.max(state.lastMessageId, Number(stored.id) || 0);
+        state.lastMessageAt = receivedAt;
+        state.staleAlerted = false;
+        $("health-parse").textContent = Object.hasOwn(data, "raw") ? "Non-JSON payload" : "Valid JSON";
+        $("health-parse").className = Object.hasOwn(data, "raw") ? "health-warn" : "health-ok";
+        const sample = { at: receivedAt, distanceCm: numberOrNull(data.distanceCm), temperatureC: numberOrNull(data.temperatureC), humidityPercent: numberOrNull(data.humidityPercent) };
+        if (Object.values(sample).some((value) => typeof value === "number")) state.samples.push(sample);
+        if (state.samples.length > maxMessages) state.samples.splice(0, state.samples.length - maxMessages);
+      }
+
+      function updateTelemetry(data) {
+        const distance = numberOrNull(data.distanceCm);
+        const temperature = numberOrNull(data.temperatureC);
+        const humidity = numberOrNull(data.humidityPercent);
+        $("distance-value").textContent = distance === null ? "--" : distance.toFixed(0);
+        $("temperature-value").textContent = temperature === null ? "--" : temperature.toFixed(1);
+        $("humidity-value").textContent = humidity === null ? "--" : humidity.toFixed(1);
+        $("distance-foot").textContent = distance === null ? "No distance in payload" : distance < Number($("distance-threshold").value) ? "Below alert threshold" : "Ultrasonic sensor · live";
+        $("temperature-foot").textContent = temperature === null ? "No temperature in payload" : "Ambient sensor · live";
+        $("humidity-foot").textContent = humidity === null ? "No humidity in payload" : "Ambient sensor · live";
+        $("mode-value").textContent = safeText(data.mode);
+        $("movement-value").textContent = safeText(data.movement);
+        $("servo-value").textContent = safeText(data.servo);
+        $("event-value").textContent = safeText(data.event);
+      }
+
+      function updateCounters() {
+        $("message-count").textContent = state.messages.length.toLocaleString();
+        $("stream-count").textContent = `· ${state.messages.length.toLocaleString()} captured`;
+        const recent = state.messages.filter((message) => Date.now() - message.receivedAt.getTime() < 60000).length;
+        $("message-rate").textContent = `${recent} / min · session`;
+        $("last-seen").textContent = state.lastMessageAt ? `· seen ${time(state.lastMessageAt)}` : "· no messages";
+      }
+
+      function updateHealthAge() {
+        if (!state.lastMessageAt) return;
+        const seconds = Math.max(0, Math.floor((Date.now() - state.lastMessageAt.getTime()) / 1000));
+        $("health-age").textContent = seconds < 2 ? "Just now" : `${seconds}s ago`;
+        $("health-age").className = seconds > Number($("stale-threshold").value) ? "health-warn" : "health-ok";
+      }
+
+      function checkAlerts(data = {}) {
+        const threshold = numberOrNull($("distance-threshold").value);
+        const distance = numberOrNull(data.distanceCm);
+        const staleAfter = numberOrNull($("stale-threshold").value) || 15;
+        let alert = "";
+        if (distance !== null && threshold !== null && distance < threshold) alert = `Distance alert: ${distance} cm is below your ${threshold} cm threshold.`;
+        else if (state.lastMessageAt && (Date.now() - state.lastMessageAt.getTime()) / 1000 > staleAfter) alert = `Telemetry has been quiet for more than ${staleAfter} seconds.`;
+        $("alert-banner").classList.toggle("visible", Boolean(alert));
+        $("alert-text").textContent = alert;
+      }
+
+      function renderMessages() {
+        const query = $("event-search").value.trim().toLowerCase();
+        const visible = state.messages.filter((message) => `${message.topic} ${message.raw}`.toLowerCase().includes(query)).slice(0, 100);
+        const body = $("message-rows");
+        if (!visible.length) {
+          body.innerHTML = `<tr class="empty-row"><td colspan="8">${state.messages.length ? "No messages match this filter." : "Connect to your broker to receive telemetry."}</td></tr>`;
+          return;
+        }
+        body.innerHTML = visible.map((message) => {
+          const data = message.data;
+          return `<tr class="message-row" data-message-index="${state.messages.indexOf(message)}"><td>${time(message.receivedAt)}</td><td class="topic" title="${escapeHtml(message.topic)}">${escapeHtml(message.topic)}</td><td class="event-name">${escapeHtml(safeText(data.event))}</td><td>${escapeHtml(safeText(data.movement))}</td><td>${escapeHtml(safeText(data.mode))}</td><td>${formatValue(data.distanceCm, " cm")}</td><td>${formatValue(data.temperatureC, " °C")}</td><td>${formatValue(data.humidityPercent, " %")}</td></tr>`;
+        }).join("");
+        body.querySelectorAll(".message-row").forEach((row) => row.addEventListener("click", () => openMessage(Number(row.dataset.messageIndex))));
+      }
+
+      function formatValue(value, suffix) {
+        const number = numberOrNull(value);
+        return number === null ? "--" : `${number}${suffix}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+      }
+
+      function openMessage(index) {
+        const message = state.messages[index];
+        if (!message) return;
+        $("dialog-meta").textContent = `${time(message.receivedAt)} · ${message.topic}`;
+        try { $("dialog-payload").textContent = JSON.stringify(JSON.parse(message.raw), null, 2); }
+        catch { $("dialog-payload").textContent = message.raw; }
+        $("message-dialog").showModal();
+      }
+
+      function drawChart() {
+        const canvas = $("history-chart");
+        const bounds = canvas.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.round(bounds.width * ratio);
+        canvas.height = Math.round(bounds.height * ratio);
+        const context = canvas.getContext("2d");
+        context.scale(ratio, ratio);
+        const width = bounds.width;
+        const height = bounds.height;
+        const metric = $("chart-metric").value;
+        const minutes = Number($("chart-range").value);
+        const cutoff = Date.now() - minutes * 60000;
+        const points = state.samples.filter((sample) => sample.at.getTime() >= cutoff && sample[metric] !== null);
+        const pad = { left: 37, right: 9, top: 12, bottom: 23 };
+        const chartWidth = width - pad.left - pad.right;
+        const chartHeight = height - pad.top - pad.bottom;
+        context.clearRect(0, 0, width, height);
+        context.font = "9px DM Mono, Consolas, monospace";
+        context.textBaseline = "middle";
+        for (let line = 0; line <= 3; line++) {
+          const y = pad.top + chartHeight * line / 3;
+          context.strokeStyle = "#edf0eb";
+          context.beginPath(); context.moveTo(pad.left, y); context.lineTo(width - pad.right, y); context.stroke();
+        }
+        const empty = points.length === 0;
+        $("chart-empty").style.display = empty ? "grid" : "none";
+        $("chart-caption").textContent = empty ? "No samples in this range" : `${points.length} samples · last ${minutes} minutes`;
+        if (empty) { $("chart-minmax").textContent = "MIN --   MAX --"; return; }
+        const values = points.map((point) => point[metric]);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const spread = Math.max(max - min, Math.abs(max) * .08, 1);
+        const low = min - spread * .12;
+        const high = max + spread * .12;
+        const color = metric === "distanceCm" ? "#176c59" : metric === "temperatureC" ? "#e87748" : "#4e82a1";
+        context.fillStyle = "#77817a";
+        for (let line = 0; line <= 3; line++) {
+          const label = high - (high - low) * line / 3;
+          context.fillText(label.toFixed(metric === "distanceCm" ? 0 : 1), 0, pad.top + chartHeight * line / 3);
+        }
+        const start = points[0].at.getTime();
+        const end = Math.max(points[points.length - 1].at.getTime(), start + 1);
+        context.beginPath();
+        points.forEach((point, index) => {
+          const x = pad.left + ((point.at.getTime() - start) / (end - start)) * chartWidth;
+          const y = pad.top + ((high - point[metric]) / (high - low)) * chartHeight;
+          if (index === 0) context.moveTo(x, y); else context.lineTo(x, y);
+        });
+        context.lineWidth = 2;
+        context.strokeStyle = color;
+        context.stroke();
+        const last = points[points.length - 1];
+        const x = pad.left + ((last.at.getTime() - start) / (end - start)) * chartWidth;
+        const y = pad.top + ((high - last[metric]) / (high - low)) * chartHeight;
+        context.fillStyle = color;
+        context.beginPath(); context.arc(x, y, 3.5, 0, Math.PI * 2); context.fill();
+        $("chart-minmax").textContent = `MIN ${min.toFixed(1)}   MAX ${max.toFixed(1)}`;
+      }
+
+      function download(filename, content, type) {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([content], { type }));
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+
+      function exportJson() {
+        download(`ai-boat-telemetry-${Date.now()}.json`, JSON.stringify(state.messages.slice().reverse().map((message) => ({ receivedAt: message.receivedAt.toISOString(), topic: message.topic, payload: message.data })), null, 2), "application/json");
+      }
+
+      function exportCsv() {
+        const headers = ["receivedAt", "topic", "event", "movement", "servo", "mode", "distanceCm", "temperatureC", "humidityPercent", "payload"];
+        const quote = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+        const rows = state.messages.slice().reverse().map((message) => [message.receivedAt.toISOString(), message.topic, message.data.event, message.data.movement, message.data.servo, message.data.mode, message.data.distanceCm, message.data.temperatureC, message.data.humidityPercent, message.raw].map(quote).join(","));
+        download(`ai-boat-telemetry-${Date.now()}.csv`, [headers.join(","), ...rows].join("\r\n"), "text/csv;charset=utf-8");
+      }
+
+      function saveThresholds() {
+        localStorage.setItem("ai-boat-monitor-thresholds", JSON.stringify({ distance: $("distance-threshold").value, stale: $("stale-threshold").value }));
+        showToast("Alert thresholds saved on this device.");
+        checkAlerts();
+      }
+
+      try {
+        const saved = JSON.parse(localStorage.getItem("ai-boat-monitor-thresholds") || "null");
+        if (saved) { $("distance-threshold").value = saved.distance ?? 20; $("stale-threshold").value = saved.stale ?? 15; }
+      } catch { /* Ignore inaccessible or malformed local preferences. */ }
+
+      $("refresh-button").addEventListener("click", pollTelemetry);
+      $("event-search").addEventListener("input", renderMessages);
+      $("chart-metric").addEventListener("change", drawChart);
+      $("chart-range").addEventListener("change", drawChart);
+      $("save-thresholds").addEventListener("click", saveThresholds);
+      $("export-json").addEventListener("click", exportJson);
+      $("export-csv").addEventListener("click", exportCsv);
+      $("clear-button").addEventListener("click", () => {
+        state.messages = []; state.samples = []; state.lastMessageAt = null;
+        $("distance-value").textContent = "--"; $("temperature-value").textContent = "--"; $("humidity-value").textContent = "--";
+        $("mode-value").textContent = "--"; $("movement-value").textContent = "--"; $("servo-value").textContent = "--"; $("event-value").textContent = "--";
+        $("last-seen").textContent = "· no messages"; $("health-age").textContent = "Never"; $("health-parse").textContent = "No data";
+        renderMessages(); updateCounters(); drawChart(); checkAlerts(); showToast("Session telemetry cleared.");
+      });
+      $("pause-button").addEventListener("click", (event) => {
+        state.paused = !state.paused;
+        event.currentTarget.textContent = state.paused ? "Resume" : "Pause";
+        if (!state.paused && state.messages.length) {
+          updateTelemetry(state.messages[0].data);
+          $("health-parse").textContent = "Valid JSON";
+          $("health-parse").className = "health-ok";
+          renderMessages(); updateHealthAge(); updateCounters(); drawChart(); checkAlerts(state.messages[0].data);
+        }
+        showToast(state.paused ? "Incoming messages paused in the view." : "Message view resumed.");
+      });
+      $("close-dialog").addEventListener("click", () => $("message-dialog").close());
+      $("message-dialog").addEventListener("click", (event) => { if (event.target === event.currentTarget) event.currentTarget.close(); });
+      window.addEventListener("resize", drawChart);
+      setInterval(() => {
+        $("clock").textContent = time(new Date());
+        updateHealthAge(); updateCounters();
+        if (state.lastMessageAt && !state.staleAlerted && (Date.now() - state.lastMessageAt.getTime()) / 1000 > Number($("stale-threshold").value)) {
+          state.staleAlerted = true; checkAlerts();
+        }
+        pollTelemetry();
+      }, 2000);
+      $("clock").textContent = time(new Date());
+      drawChart();
+      pollTelemetry();
+    })();
+  </script>
+</body>
+</html>

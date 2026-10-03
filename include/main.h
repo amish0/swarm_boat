@@ -33,8 +33,7 @@ private:
     enum class ControlMode
     {
         AUTONOMOUS,
-        MANUAL,
-        AUDIO
+        MANUAL
     };
 
     struct MqttEvent
@@ -95,7 +94,6 @@ private:
     void handleMotorCommand(String command);
     void handleServoRequest();
     void handleServoDirection(String direction);
-    void handleAudioRequest();
     void handleStatusRequest();
     void setControlMode(ControlMode mode);
     void enqueueMqttEvent(const char* eventName);
