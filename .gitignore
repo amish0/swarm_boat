@@ -9,3 +9,4 @@ build/
 !.env.example
 .venv/
 instance/
+*/__pycache__/*

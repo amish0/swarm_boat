@@ -297,6 +297,7 @@ void main::loop()
   }
 }
 
+void main::updateBuzzer(uint32_t now)
 {
   bool scanning = obstacleScanPhase == ObstacleScanPhase::WAIT_LEFT ||
     obstacleScanPhase == ObstacleScanPhase::SAMPLE_LEFT ||
