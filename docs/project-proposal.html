@@ -4405,13 +4405,16 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
       <div class="crossnote markdown-preview  ">
       
 <h1 id="project-proposal-connected-autonomous-robot-and-swarm-platform">Project Proposal: Connected Autonomous Robot and Swarm Platform </h1>
+<blockquote>
+<p><strong>From one robot to a team that works together.</strong> Two small robots explore a marked test area, share obstacle reports, and show their progress on one monitoring page.</p>
+</blockquote>
 <h2 id="executive-summary">Executive Summary </h2>
-<p>This proposal grows the current ESP32 robot into a small team of robots that can explore, share what they find, and be watched from one dashboard. Today, one robot can avoid obstacles, be controlled from a browser, and send its readings to a protected monitoring page.</p>
-<p>The next steps are to connect several robots, let them pass messages, and coordinate simple shared tasks. The project is intended for learning and small demonstrations, not for work that requires certified safety equipment.</p>
+<p>One robot can avoid obstacles. A team can also share discoveries, divide work, and show an operator what is happening across the whole test area. This proposal grows the existing ESP32 robot and monitoring page into that team.</p>
+<p>The current prototype already drives, avoids obstacles, accepts browser controls, and sends readings to a protected monitoring page. The proposed next step is to connect several robots and coordinate a simple shared task. The platform is intended for learning and small demonstrations, not for work that requires certified safety equipment.</p>
 <h2 id="problem-and-opportunity">Problem and Opportunity </h2>
 <p>One robot can only cover so much ground. A team could cover more area, share obstacle reports, and help an operator see what is happening. For this to work, each robot needs its own name and a reliable way to send updates.</p>
 <h2 id="proposed-solution">Proposed Solution </h2>
-<p>Build on the robot and dashboard already in place. Each robot will keep its own obstacle-avoidance and stop controls, even if Wi-Fi is lost. A shared message hub will pass updates between robots and the dashboard. A future coordinator can give each robot a different area to explore.</p>
+<p>Build on the robot and dashboard already in place. Each vehicle will add an onboard inertial measurement unit (IMU) and a dedicated vehicle-to-vehicle (V2V) radio module. The IMU measures acceleration and rotation; the radio shares motion estimates over the local mesh. A mesh gateway connects the team to the MQTT message hub and dashboard. Each vehicle keeps its own obstacle-avoidance and stop controls.</p>
 <p>First, give each robot a unique name. Then add team messages and shared tasks. If the network stops working, the robot must still use its local safety controls.</p>
 <h2 id="current-prototype-snapshots">Current Prototype Snapshots </h2>
 <p>These images show the robot and tools already built.</p>
@@ -4427,10 +4430,141 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
 </tbody></table>
 <p align="center"><img src="../img/Screenshot%202026-10-03%20144852.png" alt="Authenticated centralized telemetry monitoring dashboard" width="100%"></p>
 <p align="center"><em>Current monitoring page; team and fleet views are future additions.</em></p>
+<h2 id="first-demonstration-two-robots-one-survey">First Demonstration: Two Robots, One Survey </h2>
+<p>Set up two vehicles at opposite ends of a room divided into clearly marked zones. Each has the new V2V radio and IMU. An operator assigns each a different zone from the monitoring station. As they move, they share their zone, motion estimate, and sensor readings. If one encounters a blocked route, it broadcasts an obstacle report; the operator can redirect the other to an unvisited zone.</p>
+<p>The demonstration needs a bounded test area, two mesh-capable robots, and one mesh gateway with a Wi-Fi uplink. It does not depend on GPS or automatic map building. The audience can see the team status update live, then compare which zones were checked and how often the robots had to change plans.</p>
+<p><strong>A successful demo means:</strong> both robots appear separately on the dashboard, one robot's obstacle report reaches the other, and each robot still stops safely if the network is interrupted.</p>
+<h2 id="example-a-10-robot-team">Example: A 10-Robot Team </h2>
+<p>For a larger demonstration, label the robots <code>robot-01</code> through <code>robot-10</code> and mark ten work zones on the floor. The robots form a local wireless mesh, passing messages directly or through nearby robots when needed. One mesh node acts as the gateway to the site's Wi-Fi network and securely connects the team to the MQTT message hub, dashboard, and task coordinator.</p>
+<div class="mermaid">flowchart TB
+  subgraph Mesh[Local robot mesh]
+    R1[Robot 01&lt;br/&gt;V2V radio + IMU&lt;br/&gt;mesh gateway]
+    R2[Robot 02&lt;br/&gt;V2V radio + IMU]
+    R3[Robot 03&lt;br/&gt;V2V radio + IMU]
+    More[Robots 04 to 09&lt;br/&gt;each has V2V radio + IMU]
+    R10[Robot 10&lt;br/&gt;V2V radio + IMU]
+    MeshLink[Peer links&lt;br/&gt;direct or multi-hop]
+    R1 &lt;--&gt;|mesh| MeshLink
+    R2 &lt;--&gt;|mesh| MeshLink
+    R3 &lt;--&gt;|mesh| MeshLink
+    More &lt;--&gt;|mesh| MeshLink
+    R10 &lt;--&gt;|mesh| MeshLink
+  end
+
+  WiFi[Site Wi-Fi router]
+  Broker[Secure MQTT message hub]
+  Dashboard[Central dashboard]
+  Coordinator[Team coordinator]
+
+  R1 &lt;--&gt;|Gateway uplink| WiFi
+  WiFi &lt;--&gt;|MQTT over TLS| Broker
+  Broker --&gt;|Robot readings| Dashboard
+  MeshLink --&gt;|Obstacle broadcast stays local| R1
+  MeshLink --&gt; R2
+  MeshLink --&gt; R3
+  MeshLink --&gt; More
+  MeshLink --&gt; R10
+  Broker -.-&gt;|Remote task via gateway and mesh| MeshLink
+  Coordinator &lt;--&gt;|Tasks and progress| Broker
+
+  classDef device fill:#e8f3f1,stroke:#23796b,color:#142d29
+  classDef service fill:#fff3dc,stroke:#b87816,color:#34250e
+  class R1,R2,R3,More,R10 device
+  class MeshLink,WiFi,Broker,Dashboard,Coordinator service
+</div><h3 id="what-each-part-means">What Each Part Means </h3>
+<ul>
+<li><strong>Robot 01 to Robot 10:</strong> ten separate vehicles, each with its own name, sensors, motors, IMU, and dedicated V2V radio module. <code>Robots 04 to 09</code> is one combined drawing box for six vehicles; they connect and behave like the individually drawn vehicles. Robot 01 also acts as the mesh gateway in this example.</li>
+<li><strong>Local robot mesh:</strong> a shared wireless network between the robots. Nearby robots can exchange messages directly; robots farther apart can pass messages through other mesh nodes. The <code>Peer links</code> box represents this network, not a separate physical device or fixed wiring pattern.</li>
+<li><strong>Mesh gateway:</strong> Robot 01 also connects the local mesh to the site's Wi-Fi router. A dedicated gateway could be used instead in a larger deployment.</li>
+<li><strong>Secure MQTT message hub:</strong> the central traffic director. The gateway forwards team updates and remote tasks between the mesh and the dashboard or coordinator. Local robot-to-robot broadcasts can continue within mesh range without going through the central dashboard.</li>
+<li><strong>Central dashboard:</strong> the operator's view of which robots are connected, where work is assigned, and what each robot has reported.</li>
+<li><strong>Team coordinator:</strong> assigns work and tracks progress. A future version can run as software alongside the dashboard or as a separate service.</li>
+<li><strong>Arrows:</strong> mesh links show that robots can pass messages between peers. The gateway-to-router arrow carries mesh traffic to and from the central services. The dashed line shows a remote task returning through the gateway and mesh. The double arrow between coordinator and hub carries assignments out and progress back.</li>
+</ul>
+<h3 id="example-message-journey">Example Message Journey </h3>
+<ol>
+<li>Robot 03 uses its IMU to update its motion estimate and its V2V radio to share its zone, speed, acceleration, and heading with nearby vehicles.</li>
+<li>If Robot 03 detects an obstacle, it sends a separate urgent notice over the local mesh.</li>
+<li>Nearby vehicles receive both updates directly; more distant vehicles receive them through other mesh nodes. The gateway can also forward selected reports to the dashboard and coordinator.</li>
+<li>Vehicles use the shared information to improve coordination, but each still follows its own safety checks. The coordinator decides whether to change assignments.</li>
+<li>If the coordinator assigns Robot 07 a new zone, the task travels from the hub through the gateway and mesh to Robot 07 only; Robot 07 reports its progress back.</li>
+</ol>
+<p><strong>How sharing works:</strong> each vehicle has a unique name, such as <code>robot-03</code>. Its dedicated V2V radio broadcasts a small motion message containing the sender, time, sequence number, zone or estimated position, speed, acceleration, and heading. Urgent obstacle notices use a separate message type. Mesh nodes relay messages when needed; the gateway forwards selected updates to the central dashboard. Tasks for an individual vehicle are addressed by its unique name.</p>
+<p>The coordinator sends a task to one robot using its individual address. Every message includes the sender, time, message type, and a unique message number so the receiver can identify it and ignore duplicates. Commands are addressed to a specific robot and expire; each robot still checks commands locally and stops if control updates cease.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Example for 10 robots</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Robot names</td>
+<td><code>robot-01</code> to <code>robot-10</code>, each unique and kept after reboot</td>
+</tr>
+<tr>
+<td>Network</td>
+<td>Local mesh between robots; one root/gateway connects the mesh to the site's Wi-Fi and message hub</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>Unique secure identity for each robot; messages identify their sender and target, and hub rules limit central commands</td>
+</tr>
+<tr>
+<td>Mesh design</td>
+<td>Select an ESP32-compatible mesh method; test range, number of hops, and compatibility with the current Arduino/PlatformIO firmware</td>
+</tr>
+<tr>
+<td>Onboard motion sensor</td>
+<td>Add an IMU to every vehicle; sample its acceleration and rotation locally, then calculate a filtered motion estimate</td>
+</tr>
+<tr>
+<td>V2V motion updates</td>
+<td>Start at 5 updates per second per vehicle over the V2V mesh; verify radio capacity and delay before increasing the rate</td>
+</tr>
+<tr>
+<td>Motion message</td>
+<td>Include vehicle ID, timestamp, sequence number, zone or estimated position, speed, acceleration, heading, and message type</td>
+</tr>
+<tr>
+<td>Regular status</td>
+<td>One update every 5 seconds per robot, matching the current prototype interval; 10 robots average about 2 regular updates per second</td>
+</tr>
+<tr>
+<td>Urgent events</td>
+<td>Send obstacle or help messages immediately, separate from regular status updates</td>
+</tr>
+<tr>
+<td>Mesh forwarding</td>
+<td>Include a message ID and hop limit so a broadcast is not repeated forever</td>
+</tr>
+<tr>
+<td>Gateway recovery</td>
+<td>Test how another mesh node can take over the gateway role if the gateway or its uplink is lost</td>
+</tr>
+<tr>
+<td>Missing robot</td>
+<td>Mark it offline after 15 seconds without an update (three missed intervals); tune this after testing Wi-Fi reliability</td>
+</tr>
+<tr>
+<td>Team tasks</td>
+<td>Use named floor zones because the current robot does not know its precise location or build a map</td>
+</tr>
+<tr>
+<td>Network loss</td>
+<td>Local mesh messages can continue without internet; the dashboard may go stale until the gateway reconnects. Each robot keeps its own stop behavior and discards expired commands.</td>
+</tr>
+</tbody>
+</table>
+<p>These are starting settings for a proposed fleet test, not current multi-robot capabilities. Today, the firmware publishes to the shared <code>esp32/sensors</code> topic over Wi-Fi; mesh networking, mesh-to-Wi-Fi gateway behavior, unique robot identities, individual topics, and broadcast events still need to be implemented.</p>
+<p><strong>Position accuracy:</strong> an IMU measures acceleration and rotation; it does not directly measure speed or absolute position. Speed and position calculated from those readings drift over time. For reliable location, combine the IMU with GPS outdoors or another positioning method indoors. Until then, the first test can share marked zone IDs and short-term motion estimates rather than claiming precise coordinates.</p>
 <h2 id="goals">Goals </h2>
 <ul>
 <li>Keep each robot able to move and stop safely on its own.</li>
 <li>Give every robot a unique name.</li>
+<li>Add a V2V radio and IMU to each vehicle.</li>
+<li>Share motion updates and obstacle reports over the local mesh.</li>
 <li>Show all robots and their latest readings on one monitoring page.</li>
 <li>Let robots share obstacle and task updates.</li>
 <li>Demonstrate a small team exploring different areas.</li>
@@ -4454,18 +4588,20 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
   class Operator,RobotA existing
   class RobotB,Coordinator,Hub planned
 </div><h3 id="2-robot-to-robot-communication">2. Robot-to-Robot Communication </h3>
-<p>Robots can send each other simple updates, such as “obstacle ahead,” “area checked,” or “need help.” At first, these messages travel through the shared Wi-Fi connection. A direct robot-to-robot radio link could be explored later.</p>
+<p>Robots share simple updates such as “obstacle ahead,” “area checked,” or “need help” over the local mesh. Nearby robots receive a broadcast directly; the mesh relays it through other robots when needed. A mesh gateway forwards selected updates to the central MQTT hub and dashboard.</p>
 <div class="mermaid">flowchart LR
-  RobotA[Robot A finds obstacle] --&gt;|Send obstacle note| Hub[Shared message hub]
-  Hub --&gt;|Pass note to Robot B| RobotB[Robot B changes its route]
-  RobotB --&gt;|Send reply| Hub
-  Hub --&gt; RobotA
+  RobotA[Robot A finds obstacle] --&gt;|Broadcast locally| Mesh[Robot mesh&lt;br/&gt;direct or multi-hop]
+  Mesh --&gt;|Deliver to subscribers| RobotB[Robot B receives notice]
+  RobotB --&gt;|Reply or progress| Mesh
+  Mesh --&gt; Gateway[Mesh gateway]
+  Gateway --&gt;|Selected updates| Hub[Central MQTT hub]
+  Hub --&gt; Dashboard[Dashboard and coordinator]
 
   classDef existing fill:#e8f3f1,stroke:#23796b,color:#142d29
   classDef planned fill:#fff3dc,stroke:#b87816,color:#34250e
   class RobotA existing
-  class RobotB planned
-  class Hub existing
+  class RobotB,Mesh,Gateway planned
+  class Hub,Dashboard existing
 </div><h3 id="3-centralized-fleet-monitoring">3. Centralized Fleet Monitoring </h3>
 <p>The operator sees which robots are connected, what they are doing, and their latest readings. The page can keep a history and flag a robot that has stopped sending updates.</p>
 <div class="mermaid">flowchart LR
@@ -4526,17 +4662,19 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
   class Fleet,Student,Compare planned
 </div><h2 id="implementation-plan">Implementation Plan </h2>
 <ol>
-<li>Check that one robot stops safely if Wi-Fi is lost.</li>
-<li>Give each robot a unique name and show it in its updates.</li>
-<li>Update the dashboard to show the whole team and warn when a robot goes quiet.</li>
-<li>Let robots share simple messages and receive different tasks.</li>
-<li>Test two or more robots exploring a small, safe area.</li>
-<li>Consider direct radio links only if the team must work without Wi-Fi.</li>
+<li>Check that each robot stops safely if its network connection is lost.</li>
+<li>Install and test the V2V radio and IMU on one vehicle; verify radio range and sensor calibration.</li>
+<li>Build the local mesh and gateway; test coverage and recovery if the gateway disconnects.</li>
+<li>Add motion messages and combine IMU readings with GPS outdoors or indoor positioning when accurate position is required.</li>
+<li>Update the dashboard to show all vehicles and warn when one goes quiet.</li>
+<li>Test two vehicles first, then expand the shared task to ten.</li>
 </ol>
 <h2 id="deliverables">Deliverables </h2>
 <ul>
 <li>Robot software with a unique name for each robot.</li>
-<li>A shared way for robots to send updates and task messages.</li>
+<li>A V2V radio module and IMU integrated with each vehicle.</li>
+<li>A local mesh for motion updates and obstacle messages, plus a gateway to central services.</li>
+<li>A documented motion message containing speed, acceleration, heading, and position or zone estimate.</li>
 <li>A monitoring page showing each robot, its readings, and alerts.</li>
 <li>A small demonstration where robots share an exploration task.</li>
 <li>Setup and safety instructions.</li>
@@ -4544,15 +4682,19 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
 <h2 id="success-measures">Success Measures </h2>
 <ul>
 <li>Two or more robots appear separately on one monitoring page.</li>
+<li>Ten vehicle IDs can be distinguished, with each vehicle sending its own motion and sensor updates.</li>
+<li>A test confirms the chosen mesh update rate and records message delay and delivery across the test area.</li>
+<li>Position is clearly labeled as a zone, estimate, or reference-based location so IMU drift is not mistaken for exact coordinates.</li>
 <li>The page shows when a robot stops sending updates.</li>
-<li>One robot can send a message that another robot receives.</li>
-<li>Each robot still uses its own safety controls when Wi-Fi is unavailable.</li>
+<li>One robot can send a message that another robot receives over a direct or relayed mesh path.</li>
+<li>The mesh continues local message delivery if its internet uplink is unavailable.</li>
+<li>Each robot still uses its own safety controls when the mesh is unavailable.</li>
 <li>In a small test area, the robots complete a shared task without colliding.</li>
 <li>Remote controls require a login.</li>
 </ul>
 <h2 id="scope-and-assumptions">Scope and Assumptions </h2>
-<p>The current prototype is a two-wheel robot. It measures nearby distance, temperature, and humidity, and has a small screen, lights, and a buzzer. Although the project is called “AI Boat,” this hardware runs on wheels and is not designed for water.</p>
-<p>The first team of robots will need Wi-Fi. The robots do not currently know their exact location or build maps. The monitoring page shows information but does not make the robots coordinate by itself.</p>
+<p>The current prototype is a two-wheel robot. It measures nearby distance, temperature, and humidity, and has a small screen, lights, and a buzzer. It does not yet have the proposed V2V radio, IMU, or GPS/indoor positioning hardware. Although the project is called “AI Boat,” this hardware runs on wheels and is not designed for water.</p>
+<p>The proposed team uses a local wireless mesh for robot-to-robot messages and a mesh root/gateway to connect to Wi-Fi, MQTT, and the monitoring page. Mesh support is not in the current firmware and must be tested with the ESP32-WROOM and PlatformIO/Arduino environment. The robots do not currently know their exact location or build maps. The monitoring page shows information but does not make the robots coordinate by itself.</p>
 <h2 id="risks-and-mitigations">Risks and Mitigations </h2>
 <table>
 <thead>
@@ -4563,8 +4705,20 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
 </thead>
 <tbody>
 <tr>
-<td>Wi-Fi disconnects</td>
-<td>Keep obstacle avoidance and stop controls on each robot.</td>
+<td>A mesh node or gateway disconnects</td>
+<td>Keep obstacle avoidance and stop controls on each robot; test mesh re-routing and gateway recovery.</td>
+</tr>
+<tr>
+<td>Mesh traffic becomes unreliable</td>
+<td>Test coverage and multi-hop delay; limit repeated broadcasts and give messages a hop limit.</td>
+</tr>
+<tr>
+<td>IMU readings drift over time</td>
+<td>Calibrate the sensor and use GPS outdoors or an indoor position reference when accurate position is required.</td>
+</tr>
+<tr>
+<td>V2V modules interfere or cannot keep up</td>
+<td>Select compatible modules and test radio channel, range, message rate, and antenna placement with ten vehicles.</td>
 </tr>
 <tr>
 <td>Robots get mixed up</td>
@@ -4624,22 +4778,29 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
   end
 
   subgraph Fleet[FIELD ROBOTS]
-    Robot1[Robot 1&lt;br/&gt;ESP32 and sensors]
+    Robot1[Robot 1&lt;br/&gt;ESP32, V2V radio, IMU, sensors]
+    Motion1[Robot 1 motion estimate&lt;br/&gt;speed, acceleration, heading]
     Safety1[Robot 1 local safety checks]
     Motors1[Robot 1 drive motors]
-    RobotN[Robots 2..N&lt;br/&gt;same design]
+    RobotN[Robots 2..N&lt;br/&gt;V2V radio, IMU, sensors]
+    MotionN[Each vehicle motion estimate&lt;br/&gt;speed, acceleration, heading]
     SafetyN[Each robot's local safety checks]
     MotorsN[Each robot's drive motors]
-    Robot1 --&gt; Safety1 --&gt; Motors1
-    RobotN --&gt; SafetyN --&gt; MotorsN
+    Mesh[Local wireless mesh&lt;br/&gt;peer messages and multi-hop relay]
+    Gateway[Mesh root/gateway&lt;br/&gt;one robot or dedicated device]
+    Robot1 --&gt; Motion1 --&gt; Safety1 --&gt; Motors1
+    RobotN --&gt; MotionN --&gt; SafetyN --&gt; MotorsN
+    Motion1 &lt;--&gt;|Motion and obstacle messages| Mesh
+    MotionN &lt;--&gt;|Motion and obstacle messages| Mesh
+    Mesh &lt;--&gt;|Gateway uplink| Gateway
   end
 
   Proxy --&gt;|Private app traffic| Web
   Web --&gt; Redis
   Web --&gt;|Read dashboard data| Database
   Web --&gt;|Authorized commands| Broker
-  Robot1 &lt;--&gt;|Telemetry and commands| Broker
-  RobotN &lt;--&gt;|Telemetry and commands| Broker
+  Gateway --&gt;|MQTT over TLS: robot updates| Broker
+  Broker --&gt;|Targeted commands and task updates| Gateway
   Broker --&gt;|Incoming robot updates| Ingest
   Ingest --&gt;|Validated readings| Database
   Database --&gt; Backups
@@ -4648,16 +4809,16 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
   Broker --&gt; Observability
   Artifacts --&gt; UpdateService
   UpdateService --&gt;|Approve and schedule update| Broker
-  Robot1 --&gt;|HTTPS: download and verify signed update| Artifacts
-  RobotN --&gt;|HTTPS: download and verify signed update| Artifacts
+  Gateway &lt;--&gt;|HTTPS: signed firmware| Artifacts
+  Gateway --&gt;|Distribute approved update over mesh| Mesh
 
   classDef working fill:#e8f3f1,stroke:#23796b,color:#142d29
   classDef production fill:#fff3dc,stroke:#b87816,color:#34250e
   classDef safety fill:#fce9e7,stroke:#b74437,color:#3b1b18
   class Operator,Robot1,Broker,Web working
-  class Proxy,ReleaseEngineer,Ingest,Redis,UpdateService,Database,Backups,Observability,RobotN,Build,Artifacts production
+  class Proxy,ReleaseEngineer,Ingest,Redis,UpdateService,Database,Backups,Observability,RobotN,Mesh,Gateway,Build,Artifacts production
   class Safety1,SafetyN safety
-</div><p>The current project has one robot, a Flask monitor that also reads MQTT, MQTT over TLS, SQLite history, and password-protected ArduinoOTA. The production design separates telemetry reading from the web app, uses a database suited to multiple services, adds per-robot broker permissions, and sends signed updates through a controlled release process. These are recommendations that require implementation and testing before production use.</p>
+</div><p>The current project has one robot, a Flask monitor that also reads MQTT, a direct Wi-Fi-to-MQTT connection, SQLite history, and password-protected ArduinoOTA. It has no V2V module or IMU. The production design adds V2V radios and IMUs to the vehicles, a local robot mesh and gateway, separate telemetry processing, a database suited to multiple services, per-robot broker permissions, and signed updates through a controlled release process. These are recommendations that require implementation and testing before production use.</p>
 <p>Keep movement safety local: the robot stops for obstacles closer than 25 cm, waits for 35 cm of clear space before moving again, uses 30 cm as its side-clearance guide, and stops manual movement after about 900 ms without a command. Robot readings are sent every 5 seconds. The current password-protected ArduinoOTA should only be used on a trusted network; signed updates and staged rollout are proposed production improvements.</p>
 
       </div>
